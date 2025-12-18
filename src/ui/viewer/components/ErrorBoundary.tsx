@@ -1,4 +1,6 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
+import enMessages from '../locales/en.json';
+import zhMessages from '../locales/zh.json';
 
 interface Props {
   children: ReactNode;
@@ -11,6 +13,27 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private getCurrentLanguage = (): 'en' | 'zh' => {
+    const saved = localStorage.getItem('claude-mem-language');
+    if (saved === 'zh') return 'zh';
+    return 'en';
+  };
+
+  private getTranslation = (key: string): string => {
+    const lang = this.getCurrentLanguage();
+    const messages = lang === 'zh' ? zhMessages : enMessages;
+    const parts = key.split('.');
+    let value: any = messages;
+    for (const part of parts) {
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
+      } else {
+        return key;
+      }
+    }
+    return typeof value === 'string' ? value : key;
+  };
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -36,13 +59,13 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '20px', color: '#ff6b6b', backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
-          <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Something went wrong</h1>
+          <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>{this.getTranslation('errorBoundary.error')}</h1>
           <p style={{ marginBottom: '10px', color: '#8b949e' }}>
-            The application encountered an error. Please refresh the page to try again.
+            {this.getTranslation('errorBoundary.errorMessage')}
           </p>
           {this.state.error && (
             <details style={{ marginTop: '20px', color: '#8b949e' }}>
-              <summary style={{ cursor: 'pointer', marginBottom: '10px' }}>Error details</summary>
+              <summary style={{ cursor: 'pointer', marginBottom: '10px' }}>{this.getTranslation('errorBoundary.errorDetails')}</summary>
               <pre style={{
                 backgroundColor: '#0d1117',
                 padding: '10px',

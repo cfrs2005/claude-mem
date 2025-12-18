@@ -1,0 +1,102 @@
+{
+  "header": {
+    "allProjects": "所有项目",
+    "settings": "设置",
+    "discordCommunity": "加入我们的Discord社区"
+  },
+  "feed": {
+    "noItems": "没有项目要显示",
+    "loadingMore": "加载更多...",
+    "noMoreItems": "没有更多项目要加载"
+  },
+  "observationCard": {
+    "untitled": "无标题",
+    "facts": "事实",
+    "narrative": "叙述",
+    "read": "读取:",
+    "modified": "修改:"
+  },
+  "summaryCard": {
+    "investigated": "调查的",
+    "learned": "学到的",
+    "completed": "完成的",
+    "nextSteps": "下一步",
+    "sessionSummary": "会话总结",
+    "sessionId": "会话 #"
+  },
+  "promptCard": {
+    "prompt": "提示"
+  },
+  "contextSettingsModal": {
+    "settings": "设置",
+    "documentation": "文档",
+    "twitter": "X (Twitter)",
+    "previewFor": "预览:",
+    "loading": "加载中",
+    "observations": "观察",
+    "howManyObservations": "要注入多少条观察",
+    "observationsInputLabel": "观察数量",
+    "observationsTooltip": "要包含在上下文中的最近观察数量 (1-200)",
+    "sessions": "会话",
+    "sessionsInputLabel": "会话数量",
+    "sessionsTooltip": "要从中提取观察的最近会话数量 (1-50)",
+    "filters": "过滤器",
+    "whichTypes": "要包含的观察类型",
+    "type": "类型",
+    "concept": "概念",
+    "all": "全部",
+    "none": "无",
+    "display": "显示",
+    "whatToShow": "在上下文表中显示什么",
+    "fullObservations": "完整观察",
+    "count": "数量",
+    "expandedDetails": "显示多少条展开详情的观察 (0-20)",
+    "field": "字段",
+    "whichField": "选择为完整观察展开的字段",
+    "narrative": "叙述",
+    "facts": "事实",
+    "tokenEconomics": "令牌经济学",
+    "readCost": "读取成本",
+    "readCostDescription": "读取此观察所需的令牌数",
+    "workInvestment": "工作投资",
+    "workInvestmentDescription": "创建此观察花费的令牌数",
+    "savings": "节省",
+    "savingsDescription": "通过重用上下文节省的总令牌数",
+    "advanced": "高级",
+    "modelSelection": "模型选择和集成",
+    "model": "模型",
+    "modelDescription": "用于生成观察的AI模型",
+    "haikuOption": "haiku (最快)",
+    "sonnetOption": "sonnet (均衡)",
+    "opusOption": "opus (最高质量)",
+    "workerPort": "工作线程端口",
+    "workerPortDescription": "后台工作线程服务的端口",
+    "includeLastSummary": "包含上一个总结",
+    "includeLastSummaryDescription": "将上一个会话的总结添加到上下文中",
+    "includeLastMessage": "包含上一条消息",
+    "includeLastMessageDescription": "将上一个会话的最终消息添加到上下文中"
+  },
+  "terminalPreview": {
+    "loading": "加载预览中...",
+    "disableWrap": "禁用自动换行 (水平滚动)",
+    "enableWrap": "启用自动换行",
+    "wrap": "⤢ 换行",
+    "scroll": "⇄ 滚动"
+  },
+  "themeToggle": {
+    "lightTheme": "主题：浅色 (点击切换为深色)",
+    "darkTheme": "主题：深色 (点击切换为系统)",
+    "systemTheme": "主题：系统 (点击切换为浅色)"
+  },
+  "scrollToTop": {
+    "scrollToTop": "滚动到顶部"
+  },
+  "errorBoundary": {
+    "error": "出错了",
+    "errorMessage": "应用程序遇到了一个错误。请刷新页面重试。",
+    "errorDetails": "错误详情"
+  },
+  "githubStarsButton": {
+    "github": "GitHub"
+  }
+}
