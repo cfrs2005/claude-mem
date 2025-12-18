@@ -74,7 +74,11 @@
     "includeLastSummary": "包含上一个总结",
     "includeLastSummaryDescription": "将上一个会话的总结添加到上下文中",
     "includeLastMessage": "包含上一条消息",
-    "includeLastMessageDescription": "将上一个会话的最终消息添加到上下文中"
+    "includeLastMessageDescription": "将上一个会话的最终消息添加到上下文中",
+    "contentLanguage": "内容语言",
+    "contentLanguageDescription": "AI生成的观察和总结的语言",
+    "languageEnglish": "English",
+    "languageChinese": "中文 (Chinese)"
   },
   "terminalPreview": {
     "loading": "加载预览中...",

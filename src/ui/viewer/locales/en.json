@@ -74,7 +74,11 @@
     "includeLastSummary": "Include last summary",
     "includeLastSummaryDescription": "Add previous session's summary to context",
     "includeLastMessage": "Include last message",
-    "includeLastMessageDescription": "Add previous session's final message"
+    "includeLastMessageDescription": "Add previous session's final message",
+    "contentLanguage": "Content Language",
+    "contentLanguageDescription": "Language for AI-generated observations and summaries",
+    "languageEnglish": "English",
+    "languageChinese": "中文 (Chinese)"
   },
   "terminalPreview": {
     "loading": "Loading preview...",

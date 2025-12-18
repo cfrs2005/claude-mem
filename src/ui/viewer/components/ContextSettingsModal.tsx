@@ -480,6 +480,19 @@ export function ContextSettingsModal({
                 />
               </FormField>
 
+              <FormField
+                label={t('contextSettingsModal.contentLanguage')}
+                tooltip={t('contextSettingsModal.contentLanguageDescription')}
+              >
+                <select
+                  value={formState.CLAUDE_MEM_CONTENT_LANGUAGE || 'en'}
+                  onChange={(e) => updateSetting('CLAUDE_MEM_CONTENT_LANGUAGE', e.target.value)}
+                >
+                  <option value="en">{t('contextSettingsModal.languageEnglish')}</option>
+                  <option value="zh">{t('contextSettingsModal.languageChinese')}</option>
+                </select>
+              </FormField>
+
               <div className="toggle-group" style={{ marginTop: '12px' }}>
                 <ToggleSwitch
                   id="show-last-summary"

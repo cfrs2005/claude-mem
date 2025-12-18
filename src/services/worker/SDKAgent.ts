@@ -15,10 +15,11 @@ import { DatabaseManager } from './DatabaseManager.js';
 import { SessionManager } from './SessionManager.js';
 import { logger } from '../../utils/logger.js';
 import { parseObservations, parseSummary } from '../../sdk/parser.js';
-import { buildInitPrompt, buildObservationPrompt, buildSummaryPrompt, buildContinuationPrompt } from '../../sdk/prompts.js';
+import { getPrompts, type PromptLanguage } from '../../sdk/prompts.js';
 import { SettingsDefaultsManager } from '../../shared/SettingsDefaultsManager.js';
 import { USER_SETTINGS_PATH } from '../../shared/paths.js';
 import type { ActiveSession, SDKUserMessage, PendingMessage } from '../worker-types.js';
+import { readFileSync } from 'fs';
 
 // Import Agent SDK (assumes it's installed)
 // @ts-ignore - Agent SDK types may not be available
@@ -160,6 +161,21 @@ export class SDKAgent {
   }
 
   /**
+   * Get content language setting from user settings
+   */
+  private getContentLanguage(): PromptLanguage {
+    try {
+      const settingsContent = readFileSync(USER_SETTINGS_PATH, 'utf-8');
+      const settings = JSON.parse(settingsContent);
+      const language = settings.CLAUDE_MEM_CONTENT_LANGUAGE || SettingsDefaultsManager.get('CLAUDE_MEM_CONTENT_LANGUAGE');
+      return (language === 'zh' ? 'zh' : 'en') as PromptLanguage;
+    } catch {
+      // Default to English if settings not found
+      return 'en';
+    }
+  }
+
+  /**
    * Create event-driven message generator (yields messages from SessionManager)
    *
    * CRITICAL: CONTINUATION PROMPT LOGIC
@@ -185,6 +201,10 @@ export class SDKAgent {
    * - We just use the session_id we're given - simple and reliable
    */
   private async *createMessageGenerator(session: ActiveSession): AsyncIterableIterator<SDKUserMessage> {
+    // Get language setting for prompts
+    const language = this.getContentLanguage();
+    const { buildInitPrompt, buildObservationPrompt, buildSummaryPrompt, buildContinuationPrompt } = getPrompts(language);
+
     // Yield initial user prompt with context (or continuation if prompt #2+)
     // CRITICAL: Both paths use session.claudeSessionId from the hook
     yield {
