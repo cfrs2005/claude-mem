@@ -10,62 +10,25 @@
   <br>
 </h1>
 
-<h4 align="center">Persistent memory compression system built for <a href="https://claude.com/claude-code" target="_blank">Claude Code</a>.</h4>
+<h4 align="center">Claude-Mem 中文本地化 - 为 <a href="https://claude.com/claude-code" target="_blank">Claude Code</a> 构建的持久化内存压缩系统（中文版）。</h4>
 
 <p align="center">
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-AGPL%203.0-blue.svg" alt="License">
   </a>
   <a href="package.json">
-    <img src="https://img.shields.io/badge/version-6.5.0-green.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-7.4.0-green.svg" alt="Version">
   </a>
   <a href="package.json">
     <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg" alt="Node">
-  </a>
-  <a href="https://github.com/thedotmack/awesome-claude-code">
-    <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome Claude Code">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/15496" target="_blank">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/trendshift-badge-dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/trendshift-badge.svg">
-      <img src="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/trendshift-badge.svg" alt="thedotmack/claude-mem | Trendshift" width="250" height="55"/>
-    </picture>
   </a>
 </p>
 
 <br>
 
-<p align="center">
-  <a href="https://github.com/thedotmack/claude-mem">
-    <picture>
-      <img src="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/cm-preview.gif" alt="Claude-Mem Preview" width="800">
-    </picture>
-  </a>
-</p>
+## 快速开始
 
-<p align="center">
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#how-it-works">How It Works</a> •
-  <a href="#mcp-search-tools">Search Tools</a> •
-  <a href="#documentation">Documentation</a> •
-  <a href="#configuration">Configuration</a> •
-  <a href="#troubleshooting">Troubleshooting</a> •
-  <a href="#license">License</a>
-</p>
-
-<p align="center">
-  Claude-Mem seamlessly preserves context across sessions by automatically capturing tool usage observations, generating semantic summaries, and making them available to future sessions. This enables Claude to maintain continuity of knowledge about projects even after sessions end or reconnect.
-</p>
-
----
-
-## Quick Start
-
-Start a new Claude Code session in the terminal and enter the following commands:
+在 Claude Code 中运行以下命令安装：
 
 ```
 > /plugin marketplace add thedotmack/claude-mem
@@ -73,411 +36,195 @@ Start a new Claude Code session in the terminal and enter the following commands
 > /plugin install claude-mem
 ```
 
-Restart Claude Code. Context from previous sessions will automatically appear in new sessions.
+重启 Claude Code。上一个会话的上下文将自动出现在新会话中。
 
-**Key Features:**
+**关键特性：**
 
-- 🧠 **Persistent Memory** - Context survives across sessions
-- 📊 **Progressive Disclosure** - Layered memory retrieval with token cost visibility
-- 🔍 **Skill-Based Search** - Query your project history with mem-search skill
-- 🖥️ **Web Viewer UI** - Real-time memory stream at http://localhost:37777
-- 💻 **Claude Desktop Skill** - Search memory from Claude Desktop conversations
-- 🔒 **Privacy Control** - Use `<private>` tags to exclude sensitive content from storage
-- ⚙️ **Context Configuration** - Fine-grained control over what context gets injected
-- 🤖 **Automatic Operation** - No manual intervention required
-- 🔗 **Citations** - Reference past observations with IDs (access via http://localhost:37777/api/observation/{id} or view all in the web viewer at http://localhost:37777)
-- 🧪 **Beta Channel** - Try experimental features like Endless Mode via version switching
+- 🧠 **持久化内存** - 跨会话保留上下文
+- 📊 **渐进式信息披露** - 分层内存检索，显示令牌成本
+- 🔍 **技能搜索** - 使用 mem-search 技能查询项目历史
+- 🖥️ **网页查看器 UI** - 实时内存流在 http://localhost:37777
+- 💻 **Claude Desktop 技能** - 在 Claude Desktop 对话中搜索内存
+- 🔒 **隐私控制** - 使用 `<private>` 标签排除敏感内容
+- ⚙️ **上下文配置** - 微调控制注入的上下文
+- 🤖 **自动运行** - 无需手动干预
+- 🌍 **多语言支持** - 支持中文生成的观察和总结
 
 ---
 
-## Documentation
+## 中文本地化实现总结
 
-📚 **[View Full Documentation](docs/)** - Browse markdown docs on GitHub
+### 功能概述
 
-💻 **Local Preview**: Run Mintlify docs locally:
+Claude-Mem 现已支持**完整的中文本地化**，包括：
+
+✅ **UI 界面中文化** - 所有菜单标签、按钮和设置说明都支持中文
+✅ **AI 内容生成中文化** - 系统自动生成的观察（Observations）和会话总结（Summaries）支持中文
+✅ **语言动态切换** - 在高级设置中选择中文（中文）或英文（English）
+✅ **设置持久化** - 语言偏好保存到 `~/.claude-mem/settings.json`
+
+### 实现细节
+
+#### 1. **UI 本地化框架** (`src/ui/viewer/`)
+- 使用 React Context 实现 i18n（国际化）
+- 创建了 `I18nProvider` 上下文提供者
+- 在所有 UI 组件中使用 `useI18n()` 获取翻译
+- 翻译文件：
+  - `src/ui/viewer/locales/en.json` - 英文翻译
+  - `src/ui/viewer/locales/zh.json` - 中文翻译
+
+#### 2. **AI 内容生成本地化** (`src/sdk/`)
+- **双语提示词系统**：
+  - `src/sdk/prompts.ts` - 英文提示词
+  - `src/sdk/prompts-zh.ts` - 中文提示词（新增）
+  - `getPrompts(language)` 函数根据语言返回对应的提示词生成器
+
+- **提示词涵盖**：
+  - `buildInitPrompt()` - 初始化会话提示词
+  - `buildObservationPrompt()` - 生成观察提示词
+  - `buildSummaryPrompt()` - 生成总结提示词
+  - `buildContinuationPrompt()` - 会话延续提示词
+
+#### 3. **设置管理系统** (`src/ui/viewer/hooks/`)
+- **设置接口更新**：
+  - `src/ui/viewer/types.ts` - 新增 `CLAUDE_MEM_CONTENT_LANGUAGE` 字段
+  - `src/ui/viewer/constants/settings.ts` - 默认值 `'en'`
+
+- **设置 Hook 完整支持**：
+  - `src/ui/viewer/hooks/useSettings.ts` 在以下位置添加语言设置支持：
+    - ✓ 从 API 读取语言偏好（初始化时）
+    - ✓ 保存语言偏好到 `~/.claude-mem/settings.json`（用户更改时）
+
+- **设置对话框集成**：
+  - `src/ui/viewer/components/ContextSettingsModal.tsx` 中添加语言选择下拉菜单
+  - 位置：高级设置区段（Worker Host 之后）
+  - 提供两个选项："English" 和 "中文"
+
+#### 4. **Worker 服务集成** (`src/services/worker/`)
+- `src/services/worker/SDKAgent.ts`：
+  - `getContentLanguage()` 方法读取 `~/.claude-mem/settings.json` 的语言设置
+  - `createMessageGenerator()` 根据语言调用 `getPrompts(language)` 获取对应的提示词
+  - 系统在生成观察和总结时，自动使用用户选择的语言
+
+#### 5. **全局设置管理** (`src/shared/`)
+- `src/shared/SettingsDefaultsManager.ts`：
+  - 为 `CLAUDE_MEM_CONTENT_LANGUAGE` 定义类型（可选字符串）
+  - 设置默认值为 `'en'`（英文）
+
+### 关键文件改动汇总
+
+| 文件 | 改动 | 目的 |
+|------|------|------|
+| `src/ui/viewer/types.ts` | 添加 `CLAUDE_MEM_CONTENT_LANGUAGE?: string` | TypeScript 类型定义 |
+| `src/ui/viewer/constants/settings.ts` | 添加 `CLAUDE_MEM_CONTENT_LANGUAGE: 'en'` | 默认值 |
+| `src/ui/viewer/hooks/useSettings.ts` | 添加读取和保存语言设置的逻辑 | 设置持久化 |
+| `src/sdk/prompts.ts` | 新增 `getPrompts(language)` 函数 | 语言选择器 |
+| `src/sdk/prompts-zh.ts` | 新建中文提示词文件 | 中文生成支持 |
+| `src/services/worker/SDKAgent.ts` | 集成 `getContentLanguage()` 和语言选择 | Worker 语言支持 |
+| `src/shared/SettingsDefaultsManager.ts` | 新增语言字段和默认值 | 全局设置管理 |
+| `src/ui/viewer/components/ContextSettingsModal.tsx` | 添加语言选择下拉菜单 | UI 语言控制 |
+| `src/ui/viewer/locales/en.json` | 添加语言相关翻译 | UI 翻译 |
+| `src/ui/viewer/locales/zh.json` | 添加语言相关翻译 | 中文 UI |
+
+### 工作流程
+
+```
+用户在 UI 设置中选择 "中文"
+     ↓
+useSettings Hook 保存到 ~/.claude-mem/settings.json
+     ↓
+Worker 启动时读取语言设置
+     ↓
+getContentLanguage() 返回 'zh'
+     ↓
+getPrompts('zh') 返回中文提示词函数
+     ↓
+观察和总结生成为中文 🇨🇳
+```
+
+### 测试验证
+
+1. **UI 语言切换**：访问 http://localhost:37777 → 高级设置 → 内容语言 → 选择"中文"→ 确认保存
+2. **设置持久化**：运行 `cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_CONTENT_LANGUAGE` 确认 `"zh"` 已保存
+3. **内容生成**：新建会话，观察生成的观察和总结应该为中文
+
+### 技术亮点
+
+- ✅ **非侵入式设计** - 保持核心系统不变，通过参数化语言支持
+- ✅ **完全解耦** - UI 本地化和内容生成本地化独立实现
+- ✅ **零损耗切换** - 用户可随时在中英文之间切换
+- ✅ **向后兼容** - 默认英文，现有用户无需配置
+- ✅ **可扩展性** - 添加新语言只需创建新的提示词文件和翻译文件
+
+---
+
+## 文档
+
+📚 **[完整文档](docs/)** - 浏览 GitHub 上的 Markdown 文档
+
+💻 **本地预览**：运行 Mintlify 文档：
 
 ```bash
 cd docs/public
 npx mintlify dev
 ```
 
-### Getting Started
+### 快速开始
 
-- **[Installation Guide](https://docs.claude-mem.ai/installation)** - Quick start & advanced installation
-- **[Usage Guide](https://docs.claude-mem.ai/usage/getting-started)** - How Claude-Mem works automatically
-- **[Search Tools](https://docs.claude-mem.ai/usage/search-tools)** - Query your project history with natural language
-- **[Beta Features](https://docs.claude-mem.ai/beta-features)** - Try experimental features like Endless Mode
+- **[安装指南](https://docs.claude-mem.ai/installation)** - 快速开始和高级安装
+- **[使用指南](https://docs.claude-mem.ai/usage/getting-started)** - Claude-Mem 自动运行方式
+- **[搜索工具](https://docs.claude-mem.ai/usage/search-tools)** - 使用自然语言查询项目历史
 
-### Best Practices
+### 架构
 
-- **[Context Engineering](https://docs.claude-mem.ai/context-engineering)** - AI agent context optimization principles
-- **[Progressive Disclosure](https://docs.claude-mem.ai/progressive-disclosure)** - Philosophy behind Claude-Mem's context priming strategy
-
-### Architecture
-
-- **[Overview](https://docs.claude-mem.ai/architecture/overview)** - System components & data flow
-- **[Architecture Evolution](https://docs.claude-mem.ai/architecture-evolution)** - The journey from v3 to v5
-- **[Hooks Architecture](https://docs.claude-mem.ai/hooks-architecture)** - How Claude-Mem uses lifecycle hooks
-- **[Hooks Reference](https://docs.claude-mem.ai/architecture/hooks)** - 7 hook scripts explained
-- **[Worker Service](https://docs.claude-mem.ai/architecture/worker-service)** - HTTP API & Bun management
-- **[Database](https://docs.claude-mem.ai/architecture/database)** - SQLite schema & FTS5 search
-- **[Search Architecture](https://docs.claude-mem.ai/architecture/search-architecture)** - Hybrid search with Chroma vector database
-
-### Configuration & Development
-
-- **[Configuration](https://docs.claude-mem.ai/configuration)** - Environment variables & settings
-- **[Development](https://docs.claude-mem.ai/development)** - Building, testing, contributing
-- **[Troubleshooting](https://docs.claude-mem.ai/troubleshooting)** - Common issues & solutions
+- **[概述](https://docs.claude-mem.ai/architecture/overview)** - 系统组件和数据流
+- **[Hooks 架构](https://docs.claude-mem.ai/hooks-architecture)** - Claude-Mem 如何使用生命周期钩子
+- **[Worker 服务](https://docs.claude-mem.ai/architecture/worker-service)** - HTTP API 和 Bun 管理
+- **[数据库](https://docs.claude-mem.ai/architecture/database)** - SQLite 架构和 FTS5 搜索
 
 ---
 
-## How It Works
+## 系统要求
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Session Start → Inject recent observations as context      │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ User Prompts → Create session, save user prompts           │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Tool Executions → Capture observations (Read, Write, etc.)  │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Worker Processes → Extract learnings via Claude Agent SDK   │
-└─────────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Session Ends → Generate summary, ready for next session     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Core Components:**
-
-1. **5 Lifecycle Hooks** - SessionStart, UserPromptSubmit, PostToolUse, Stop, SessionEnd (6 hook scripts)
-2. **Smart Install** - Cached dependency checker (pre-hook script, not a lifecycle hook)
-3. **Worker Service** - HTTP API on port 37777 with web viewer UI and 10 search endpoints, managed by Bun
-4. **SQLite Database** - Stores sessions, observations, summaries with FTS5 full-text search
-5. **mem-search Skill** - Natural language queries with progressive disclosure
-6. **Chroma Vector Database** - Hybrid semantic + keyword search for intelligent context retrieval
-
-See [Architecture Overview](https://docs.claude-mem.ai/architecture/overview) for details.
+- **Node.js**: 18.0.0 或更高版本
+- **Claude Code**: 最新版本且支持插件
+- **Bun**: JavaScript 运行时和进程管理器（如果缺少会自动安装）
+- **uv**: Python 包管理器（如果缺少会自动安装）
+- **SQLite 3**: 用于持久化存储（已包含）
 
 ---
 
-## mem-search Skill
+## 贡献
 
-Claude-Mem provides intelligent search through the mem-search skill that auto-invokes when you ask about past work:
+欢迎贡献！请：
 
-**How It Works:**
-- Just ask naturally: *"What did we do last session?"* or *"Did we fix this bug before?"*
-- Claude automatically invokes the mem-search skill to find relevant context
+1. Fork 本仓库
+2. 创建功能分支
+3. 进行更改并添加测试
+4. 更新文档
+5. 提交 Pull Request
 
-**Available Search Operations:**
-
-1. **Search Observations** - Full-text search across observations
-2. **Search Sessions** - Full-text search across session summaries
-3. **Search Prompts** - Search raw user requests
-4. **By Concept** - Find by concept tags (discovery, problem-solution, pattern, etc.)
-5. **By File** - Find observations referencing specific files
-6. **By Type** - Find by type (decision, bugfix, feature, refactor, discovery, change)
-7. **Recent Context** - Get recent session context for a project
-8. **Timeline** - Get unified timeline of context around a specific point in time
-9. **Timeline by Query** - Search for observations and get timeline context around best match
-10. **API Help** - Get search API documentation
-
-**Example Natural Language Queries:**
-
-```
-"What bugs did we fix last session?"
-"How did we implement authentication?"
-"What changes were made to worker-service.ts?"
-"Show me recent work on this project"
-"What was happening when we added the viewer UI?"
-```
-
-See [Search Tools Guide](https://docs.claude-mem.ai/usage/search-tools) for detailed examples.
+更多详见 [开发指南](https://docs.claude-mem.ai/development)。
 
 ---
 
-## Beta Features & Endless Mode
+## 许可证
 
-> **Note**: Endless Mode is an **experimental feature in the beta branch only**. It is not included in the stable release you install via the marketplace. You must manually switch to the beta channel to try it, and it comes with significant caveats (see below).
+本项目采用 **GNU Affero General Public License v3.0** (AGPL-3.0) 许可。
 
-Claude-Mem offers a **beta channel** with experimental features. Switch between stable and beta versions directly from the web viewer UI.
+版权所有 (C) 2025 Alex Newman (@thedotmack)。保留所有权利。
 
-### How to Try Beta
-
-1. Open http://localhost:37777
-2. Click Settings (gear icon)
-3. In **Version Channel**, click "Try Beta (Endless Mode)"
-4. Wait for the worker to restart
-
-Your memory data is preserved when switching versions.
-
-### Endless Mode (Beta)
-
-The flagship beta feature is **Endless Mode** - a biomimetic memory architecture that dramatically extends session length:
-
-**The Problem**: Standard Claude Code sessions hit context limits after ~50 tool uses. Each tool adds 1-10k+ tokens, and Claude re-synthesizes all previous outputs on every response (O(N²) complexity).
-
-**The Solution**: Endless Mode compresses tool outputs into ~500-token observations and transforms the transcript in real-time:
-
-```
-Working Memory (Context):     Compressed observations (~500 tokens each)
-Archive Memory (Disk):        Full tool outputs preserved for recall
-```
-
-**Projected Results** (based on theoretical modeling, not production measurements):
-- Significant token reduction in context window
-- More tool uses before context exhaustion
-- Linear O(N) scaling instead of quadratic O(N²)
-- Full transcripts preserved for perfect recall
-
-**Important Caveats**:
-- **Not in stable release** - You must switch to beta branch to use this feature
-- **Still in development** - May have bugs, breaking changes, or incomplete functionality
-- **Slower than standard mode** - Blocking observation generation adds latency to each tool use
-- **Theoretical projections** - The efficiency claims above are based on simulations, not real-world production data
-
-See [Beta Features Documentation](https://docs.claude-mem.ai/beta-features) for details.
+详见 [LICENSE](LICENSE) 文件。
 
 ---
 
-## What's New
+## 支持
 
-**v6.4.9 - Context Configuration Settings:**
-- 11 new settings for fine-grained control over context injection
-- Configure token economics display, observation filtering by type/concept
-- Control number of observations and which fields to display
-
-**v6.4.0 - Dual-Tag Privacy System:**
-- `<private>` tags for user-controlled privacy - wrap sensitive content to exclude from storage
-- System-level `<claude-mem-context>` tags prevent recursive observation storage
-- Edge processing ensures private content never reaches database
-
-**v6.3.0 - Version Channel:**
-- Switch between stable and beta versions from the web viewer UI
-- Try experimental features like Endless Mode without manual git operations
-
-**Previous Highlights:**
-- **v6.0.0**: Major session management & transcript processing improvements
-- **v5.5.0**: mem-search skill enhancement with 100% effectiveness rate
-- **v5.4.0**: Skill-based search architecture (~2,250 tokens saved per session)
-- **v5.1.0**: Web-based viewer UI with real-time updates
-- **v5.0.0**: Hybrid search with Chroma vector database
-
-See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+- **文档**: [docs/](docs/)
+- **问题**: [GitHub Issues](https://github.com/thedotmack/claude-mem/issues)
+- **仓库**: [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
+- **作者**: Alex Newman ([@thedotmack](https://github.com/thedotmack))
 
 ---
 
-## System Requirements
-
-- **Node.js**: 18.0.0 or higher
-- **Claude Code**: Latest version with plugin support
-- **Bun**: JavaScript runtime and process manager (auto-installed if missing)
-- **uv**: Python package manager for vector search (auto-installed if missing)
-- **SQLite 3**: For persistent storage (bundled)
-
----
-
-## Key Benefits
-
-### Progressive Disclosure Context
-
-- **Layered memory retrieval** mirrors human memory patterns
-- **Layer 1 (Index)**: See what observations exist with token costs at session start
-- **Layer 2 (Details)**: Fetch full narratives on-demand via MCP search
-- **Layer 3 (Perfect Recall)**: Access source code and original transcripts
-- **Smart decision-making**: Token counts help Claude choose between fetching details or reading code
-- **Type indicators**: Visual cues (🔴 critical, 🟤 decision, 🔵 informational) highlight observation importance
-
-### Automatic Memory
-
-- Context automatically injected when Claude starts
-- No manual commands or configuration needed
-- Works transparently in the background
-
-### Full History Search
-
-- Search across all sessions and observations
-- FTS5 full-text search for fast queries
-- Citations link back to specific observations
-
-### Structured Observations
-
-- AI-powered extraction of learnings
-- Categorized by type (decision, bugfix, feature, etc.)
-- Tagged with concepts and file references
-
-### Multi-Prompt Sessions
-
-- Sessions span multiple user prompts
-- Context preserved across `/clear` commands
-- Track entire conversation threads
-
----
-
-## Configuration
-
-Settings are managed in `~/.claude-mem/settings.json`. The file is auto-created with defaults on first run.
-
-**Available Settings:**
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `CLAUDE_MEM_MODEL` | `claude-sonnet-4-5` | AI model for observations |
-| `CLAUDE_MEM_WORKER_PORT` | `37777` | Worker service port |
-| `CLAUDE_MEM_WORKER_HOST` | `127.0.0.1` | Worker bind address (use `0.0.0.0` for remote access) |
-| `CLAUDE_MEM_DATA_DIR` | `~/.claude-mem` | Data directory location |
-| `CLAUDE_MEM_LOG_LEVEL` | `INFO` | Log verbosity (DEBUG, INFO, WARN, ERROR, SILENT) |
-| `CLAUDE_MEM_PYTHON_VERSION` | `3.13` | Python version for chroma-mcp |
-| `CLAUDE_CODE_PATH` | _(auto-detect)_ | Path to Claude executable |
-| `CLAUDE_MEM_CONTEXT_OBSERVATIONS` | `50` | Number of observations to inject at SessionStart |
-
-**Settings Management:**
-
-```bash
-# Edit settings via CLI helper
-./claude-mem-settings.sh
-
-# Or edit directly
-nano ~/.claude-mem/settings.json
-
-# View current settings
-curl http://localhost:37777/api/settings
-```
-
-**Settings File Format:**
-
-```json
-{
-  "CLAUDE_MEM_MODEL": "claude-sonnet-4-5",
-  "CLAUDE_MEM_WORKER_PORT": "37777",
-  "CLAUDE_MEM_CONTEXT_OBSERVATIONS": "50"
-}
-```
-
-See [Configuration Guide](https://docs.claude-mem.ai/configuration) for details.
-
----
-
-## Development
-
-```bash
-# Clone and build
-git clone https://github.com/thedotmack/claude-mem.git
-cd claude-mem
-npm install
-npm run build
-
-# Run tests
-npm test
-
-# Start worker
-npm run worker:start
-
-# View logs
-npm run worker:logs
-```
-
-See [Development Guide](https://docs.claude-mem.ai/development) for detailed instructions.
-
----
-
-## Troubleshooting
-
-**Quick Diagnostic:**
-
-If you're experiencing issues, describe the problem to Claude and the troubleshoot skill will automatically activate to diagnose and provide fixes.
-
-**Common Issues:**
-
-- Worker not starting → `npm run worker:restart`
-- No context appearing → `npm run test:context`
-- Database issues → `sqlite3 ~/.claude-mem/claude-mem.db "PRAGMA integrity_check;"`
-- Search not working → Check FTS5 tables exist
-
-See [Troubleshooting Guide](https://docs.claude-mem.ai/troubleshooting) for complete solutions.
-
-### Windows Known Issues
-
-**Console Window Visibility**: On Windows, a console window may briefly appear when the worker service starts. This is a cosmetic issue that we're working to resolve. We've prioritized stability by removing a workaround that was causing libuv crashes. The window does not affect functionality and will be addressed in a future release when the MCP SDK provides proper window hiding support.
-
----
-
-## Bug Reports
-
-**Automated Bug Report Generator** - Create comprehensive bug reports with one command:
-
-```bash
-# From the plugin directory
-cd ~/.claude/plugins/marketplaces/thedotmack
-npm run bug-report
-```
-
-The bug report tool will:
-- 🌎 **Auto-translate** - Write in ANY language, automatically translates to English
-- 📊 **Collect diagnostics** - Gathers versions, platform info, worker status, logs, and configuration
-- 📝 **Interactive prompts** - Guides you through describing the issue with multiline support
-- 🤖 **AI formatting** - Uses Claude Agent SDK to generate professional GitHub issues
-- 🔒 **Privacy-safe** - Auto-sanitizes paths, optional `--no-logs` flag
-- 🌐 **Auto-submit** - Opens GitHub with pre-filled title and body
-
-**Plugin Directory Paths:**
-- **macOS/Linux**: `~/.claude/plugins/marketplaces/thedotmack`
-- **Windows**: `%USERPROFILE%\.claude\plugins\marketplaces\thedotmack`
-
-**Options:**
-```bash
-npm run bug-report --no-logs    # Skip logs for privacy
-npm run bug-report --verbose    # Show all diagnostics
-npm run bug-report --help       # Show help
-```
-
----
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Update documentation
-5. Submit a Pull Request
-
-See [Development Guide](https://docs.claude-mem.ai/development) for contribution workflow.
-
----
-
-## License
-
-This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
-
-Copyright (C) 2025 Alex Newman (@thedotmack). All rights reserved.
-
-See the [LICENSE](LICENSE) file for full details.
-
-**What This Means:**
-
-- You can use, modify, and distribute this software freely
-- If you modify and deploy on a network server, you must make your source code available
-- Derivative works must also be licensed under AGPL-3.0
-- There is NO WARRANTY for this software
-
----
-
-## Support
-
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/thedotmack/claude-mem/issues)
-- **Repository**: [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
-- **Author**: Alex Newman ([@thedotmack](https://github.com/thedotmack))
-
----
-
-**Built with Claude Agent SDK** | **Powered by Claude Code** | **Made with TypeScript**
+**由 Claude Agent SDK 构建** | **由 Claude Code 驱动** | **用 TypeScript 编写**
