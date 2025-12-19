@@ -184,6 +184,144 @@ npx mintlify dev
 
 ---
 
+## 开发和编译
+
+### 安装依赖
+
+克隆项目并安装依赖：
+
+```bash
+git clone https://github.com/thedotmack/claude-mem.git
+cd claude-mem
+npm install
+```
+
+**常见问题：npm install 网络问题**
+
+如果遇到 npm 缓存权限错误：
+
+```bash
+# 清除 npm 缓存
+npm cache clean --force
+
+# 重试安装
+npm install
+```
+
+### 编译和构建
+
+构建所有 TypeScript 代码、React UI 和 Worker 服务：
+
+```bash
+npm run build
+```
+
+输出文件位置：
+- `plugin/` - 构建的插件文件
+- `plugin/scripts/` - 编译后的 Hook 脚本（`*-hook.js`）
+- `plugin/ui/viewer.html` - React UI 构建文件
+- `plugin/ui/viewer-bundle.js` - React 包文件
+
+### 同步到本地插件目录
+
+构建后，同步到 Claude Code 的本地插件目录：
+
+```bash
+npm run sync-marketplace
+```
+
+这会复制文件到：
+- macOS/Linux: `~/.claude/plugins/marketplaces/thedotmack/claude-mem/`
+- Windows: `%USERPROFILE%\.claude\plugins\marketplaces\thedotmack\claude-mem\`
+
+### 重启 Worker 服务
+
+更改代码后，需要重启 Worker 服务让更改生效：
+
+```bash
+npm run worker:restart
+```
+
+查看 Worker 日志：
+
+```bash
+npm run worker:logs
+```
+
+### 完整工作流（推荐）
+
+一个命令完成构建、同步和重启：
+
+```bash
+npm run build-and-sync
+```
+
+这相当于：
+1. ✅ `npm run build` - 编译所有代码
+2. ✅ `npm run sync-marketplace` - 同步到插件目录
+3. ✅ `npm run worker:restart` - 自动重启 Worker
+
+---
+
+## 故障排除
+
+### Worker 服务未启动
+
+症状：http://localhost:37777 无法访问
+
+解决方案：
+
+```bash
+# 重启 Worker
+npm run worker:restart
+
+# 检查 Worker 状态
+npm run worker:status
+
+# 查看 Worker 日志找出错误
+npm run worker:logs
+```
+
+### 中文本地化未生效
+
+如果修改了中文相关代码，需要：
+
+1. **重新编译**：
+   ```bash
+   npm run build
+   ```
+
+2. **同步到插件目录**：
+   ```bash
+   npm run sync-marketplace
+   ```
+
+3. **重启 Worker**：
+   ```bash
+   npm run worker:restart
+   ```
+
+4. **清除浏览器缓存**（可选）：
+   - 打开 http://localhost:37777
+   - 按 F12 打开开发者工具
+   - 清除缓存或硬刷新 (Ctrl+Shift+R)
+
+### 设置未保存到 settings.json
+
+检查 UI Hook 的 useSettings 是否正确读写语言设置字段：
+
+```bash
+# 查看当前设置
+cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_CONTENT_LANGUAGE
+
+# 应该看到：
+# "CLAUDE_MEM_CONTENT_LANGUAGE": "zh"  (如果选了中文)
+# 或
+# "CLAUDE_MEM_CONTENT_LANGUAGE": "en"  (如果选了英文)
+```
+
+---
+
 ## 系统要求
 
 - **Node.js**: 18.0.0 或更高版本
