@@ -29,6 +29,7 @@ export function useSettings() {
           // Observation Filtering
           CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES: data.CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES || DEFAULT_SETTINGS.CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES,
           CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS: data.CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS || DEFAULT_SETTINGS.CLAUDE_MEM_CONTEXT_OBSERVATION_CONCEPTS,
+          CLAUDE_MEM_CONTENT_LANGUAGE: data.CLAUDE_MEM_CONTENT_LANGUAGE || DEFAULT_SETTINGS.CLAUDE_MEM_CONTENT_LANGUAGE,
 
           // Display Configuration
           CLAUDE_MEM_CONTEXT_FULL_COUNT: data.CLAUDE_MEM_CONTEXT_FULL_COUNT || DEFAULT_SETTINGS.CLAUDE_MEM_CONTEXT_FULL_COUNT,
@@ -53,7 +54,10 @@ export function useSettings() {
       const response = await fetch(API_ENDPOINTS.SETTINGS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
+        body: JSON.stringify({
+          ...newSettings,
+          CLAUDE_MEM_CONTENT_LANGUAGE: newSettings.CLAUDE_MEM_CONTENT_LANGUAGE || DEFAULT_SETTINGS.CLAUDE_MEM_CONTENT_LANGUAGE,
+        })
       });
 
       const result = await response.json();
