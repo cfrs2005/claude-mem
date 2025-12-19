@@ -33,11 +33,8 @@ function stripProjectRoot(filePath: string): string {
 
 export function ObservationCard({ observation }: ObservationCardProps) {
   const { t } = useI18n();
-  const [showFacts, setShowFacts] = useState(false);
-  const [showNarrative, setShowNarrative] = useState(false);
-  const date = formatDate(observation.created_at_epoch);
 
-  // Parse JSON fields
+  // Parse JSON fields first to determine initial state
   const facts = observation.facts ? JSON.parse(observation.facts) : [];
   const concepts = observation.concepts ? JSON.parse(observation.concepts) : [];
   const filesRead = observation.files_read ? JSON.parse(observation.files_read).map(stripProjectRoot) : [];
@@ -45,6 +42,11 @@ export function ObservationCard({ observation }: ObservationCardProps) {
 
   // Show facts toggle if there are facts, concepts, or files
   const hasFactsContent = facts.length > 0 || concepts.length > 0 || filesRead.length > 0 || filesModified.length > 0;
+
+  // Default to showing facts if they exist, otherwise show subtitle
+  const [showFacts, setShowFacts] = useState(hasFactsContent);
+  const [showNarrative, setShowNarrative] = useState(false);
+  const date = formatDate(observation.created_at_epoch);
 
   return (
     <div className="card">
