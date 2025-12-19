@@ -1,6 +1,7 @@
 <h1 align="center">
-  <br>
-  <a href="https://github.com/thedotmack/claude-mem">
+  <br><img width="3552" height="1806" alt="mem-cn" src="https://github.com/user-attachments/assets/c7b28526-4e30-471b-9060-aace5d9916bb" />
+
+  <a href="https://github.com/cfrs2005/claude-mem">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/claude-mem-logo-for-dark-mode.webp">
       <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/public/claude-mem-logo-for-light-mode.webp">
@@ -62,99 +63,6 @@ Claude-Mem 现已支持**完整的中文本地化**，包括：
 ✅ **AI 内容生成中文化** - 系统自动生成的观察（Observations）和会话总结（Summaries）支持中文
 ✅ **语言动态切换** - 在高级设置中选择中文（中文）或英文（English）
 ✅ **设置持久化** - 语言偏好保存到 `~/.claude-mem/settings.json`
-
-### 实现细节
-
-#### 1. **UI 本地化框架** (`src/ui/viewer/`)
-- 使用 React Context 实现 i18n（国际化）
-- 创建了 `I18nProvider` 上下文提供者
-- 在所有 UI 组件中使用 `useI18n()` 获取翻译
-- 翻译文件：
-  - `src/ui/viewer/locales/en.json` - 英文翻译
-  - `src/ui/viewer/locales/zh.json` - 中文翻译
-
-#### 2. **AI 内容生成本地化** (`src/sdk/`)
-- **双语提示词系统**：
-  - `src/sdk/prompts.ts` - 英文提示词
-  - `src/sdk/prompts-zh.ts` - 中文提示词（新增）
-  - `getPrompts(language)` 函数根据语言返回对应的提示词生成器
-
-- **提示词涵盖**：
-  - `buildInitPrompt()` - 初始化会话提示词
-  - `buildObservationPrompt()` - 生成观察提示词
-  - `buildSummaryPrompt()` - 生成总结提示词
-  - `buildContinuationPrompt()` - 会话延续提示词
-
-#### 3. **设置管理系统** (`src/ui/viewer/hooks/`)
-- **设置接口更新**：
-  - `src/ui/viewer/types.ts` - 新增 `CLAUDE_MEM_CONTENT_LANGUAGE` 字段
-  - `src/ui/viewer/constants/settings.ts` - 默认值 `'en'`
-
-- **设置 Hook 完整支持**：
-  - `src/ui/viewer/hooks/useSettings.ts` 在以下位置添加语言设置支持：
-    - ✓ 从 API 读取语言偏好（初始化时）
-    - ✓ 保存语言偏好到 `~/.claude-mem/settings.json`（用户更改时）
-
-- **设置对话框集成**：
-  - `src/ui/viewer/components/ContextSettingsModal.tsx` 中添加语言选择下拉菜单
-  - 位置：高级设置区段（Worker Host 之后）
-  - 提供两个选项："English" 和 "中文"
-
-#### 4. **Worker 服务集成** (`src/services/worker/`)
-- `src/services/worker/SDKAgent.ts`：
-  - `getContentLanguage()` 方法读取 `~/.claude-mem/settings.json` 的语言设置
-  - `createMessageGenerator()` 根据语言调用 `getPrompts(language)` 获取对应的提示词
-  - 系统在生成观察和总结时，自动使用用户选择的语言
-
-#### 5. **全局设置管理** (`src/shared/`)
-- `src/shared/SettingsDefaultsManager.ts`：
-  - 为 `CLAUDE_MEM_CONTENT_LANGUAGE` 定义类型（可选字符串）
-  - 设置默认值为 `'en'`（英文）
-
-### 关键文件改动汇总
-
-| 文件 | 改动 | 目的 |
-|------|------|------|
-| `src/ui/viewer/types.ts` | 添加 `CLAUDE_MEM_CONTENT_LANGUAGE?: string` | TypeScript 类型定义 |
-| `src/ui/viewer/constants/settings.ts` | 添加 `CLAUDE_MEM_CONTENT_LANGUAGE: 'en'` | 默认值 |
-| `src/ui/viewer/hooks/useSettings.ts` | 添加读取和保存语言设置的逻辑 | 设置持久化 |
-| `src/sdk/prompts.ts` | 新增 `getPrompts(language)` 函数 | 语言选择器 |
-| `src/sdk/prompts-zh.ts` | 新建中文提示词文件 | 中文生成支持 |
-| `src/services/worker/SDKAgent.ts` | 集成 `getContentLanguage()` 和语言选择 | Worker 语言支持 |
-| `src/shared/SettingsDefaultsManager.ts` | 新增语言字段和默认值 | 全局设置管理 |
-| `src/ui/viewer/components/ContextSettingsModal.tsx` | 添加语言选择下拉菜单 | UI 语言控制 |
-| `src/ui/viewer/locales/en.json` | 添加语言相关翻译 | UI 翻译 |
-| `src/ui/viewer/locales/zh.json` | 添加语言相关翻译 | 中文 UI |
-
-### 工作流程
-
-```
-用户在 UI 设置中选择 "中文"
-     ↓
-useSettings Hook 保存到 ~/.claude-mem/settings.json
-     ↓
-Worker 启动时读取语言设置
-     ↓
-getContentLanguage() 返回 'zh'
-     ↓
-getPrompts('zh') 返回中文提示词函数
-     ↓
-观察和总结生成为中文 🇨🇳
-```
-
-### 测试验证
-
-1. **UI 语言切换**：访问 http://localhost:37777 → 高级设置 → 内容语言 → 选择"中文"→ 确认保存
-2. **设置持久化**：运行 `cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_CONTENT_LANGUAGE` 确认 `"zh"` 已保存
-3. **内容生成**：新建会话，观察生成的观察和总结应该为中文
-
-### 技术亮点
-
-- ✅ **非侵入式设计** - 保持核心系统不变，通过参数化语言支持
-- ✅ **完全解耦** - UI 本地化和内容生成本地化独立实现
-- ✅ **零损耗切换** - 用户可随时在中英文之间切换
-- ✅ **向后兼容** - 默认英文，现有用户无需配置
-- ✅ **可扩展性** - 添加新语言只需创建新的提示词文件和翻译文件
 
 ---
 
@@ -282,44 +190,6 @@ npm run worker:status
 npm run worker:logs
 ```
 
-### 中文本地化未生效
-
-如果修改了中文相关代码，需要：
-
-1. **重新编译**：
-   ```bash
-   npm run build
-   ```
-
-2. **同步到插件目录**：
-   ```bash
-   npm run sync-marketplace
-   ```
-
-3. **重启 Worker**：
-   ```bash
-   npm run worker:restart
-   ```
-
-4. **清除浏览器缓存**（可选）：
-   - 打开 http://localhost:37777
-   - 按 F12 打开开发者工具
-   - 清除缓存或硬刷新 (Ctrl+Shift+R)
-
-### 设置未保存到 settings.json
-
-检查 UI Hook 的 useSettings 是否正确读写语言设置字段：
-
-```bash
-# 查看当前设置
-cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_CONTENT_LANGUAGE
-
-# 应该看到：
-# "CLAUDE_MEM_CONTENT_LANGUAGE": "zh"  (如果选了中文)
-# 或
-# "CLAUDE_MEM_CONTENT_LANGUAGE": "en"  (如果选了英文)
-```
-
 ---
 
 ## 系统要求
@@ -332,20 +202,6 @@ cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_CONTENT_LANGUAGE
 
 ---
 
-## 贡献
-
-欢迎贡献！请：
-
-1. Fork 本仓库
-2. 创建功能分支
-3. 进行更改并添加测试
-4. 更新文档
-5. 提交 Pull Request
-
-更多详见 [开发指南](https://docs.claude-mem.ai/development)。
-
----
-
 ## 许可证
 
 本项目采用 **GNU Affero General Public License v3.0** (AGPL-3.0) 许可。
@@ -354,14 +210,6 @@ cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_CONTENT_LANGUAGE
 
 详见 [LICENSE](LICENSE) 文件。
 
----
-
-## 支持
-
-- **文档**: [docs/](docs/)
-- **问题**: [GitHub Issues](https://github.com/thedotmack/claude-mem/issues)
-- **仓库**: [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
-- **作者**: Alex Newman ([@thedotmack](https://github.com/thedotmack))
 
 ---
 
