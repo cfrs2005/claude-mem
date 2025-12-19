@@ -156,3 +156,15 @@ npm run worker:logs
 ---
 
 **由 Claude Agent SDK 构建** | **由 Claude Code 驱动** | **用 TypeScript 编写**
+
+
+## 📚 相关教程
+
+想深入学习Claude-Mem的使用和最佳实践？查看以下教程：
+
+- [Claude-Mem 入门教程：让 AI 拥有持久记忆](https://www.80aj.com/2025/12/18/claudememrumenjiaochengrangaiyongyouchijiujiyi/)
+- - [Claude-Mem 最佳实践：让记忆更有效](https://www.80aj.com/2025/12/18/claudememzuijiashijianrangjiyigengyouxiao/)
+  - - [Claude-Mem 数据管理：日记本的搬家与备份](https://www.80aj.com/2025/12/18/claudememshujuguanlirijibendebanjiayubeifen/)
+    - - [Claude-Mem 隐私控制：日记本里的私密页](https://www.80aj.com/2025/12/18/claudememyinsikongzhirijibenlidesimiye/)
+      - - [Claude-Mem 记忆搜索：从日记本里找内容](https://www.80aj.com/2025/12/18/claudememjiyisousuocongrijibenlizhaoneirong/)
+        - - [理解 Claude-mem：后台交互与中英文术语对照](https://www.80aj.com/2025/12/18/lijieclaudememhoutaijiaohuyuzhongyingwenshuyuduizhao/)
