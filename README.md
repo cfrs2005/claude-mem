@@ -93,82 +93,88 @@ npx mintlify dev
 
 ---
 
-## 开发和编译
+## 使用中文版本
 
-### 安装依赖
+### 为什么要克隆这个项目？
 
-克隆项目并安装依赖：
+这是 `thedotmack/claude-mem` **原版的中文本地化版本**。
+
+**两种用法**：
+- **只用中文**：装原版插件，克隆这个项目，编译同步即可
+- **修改功能**：在这个项目基础上修改代码，编译同步
+
+核心是：编译后的文件会**替代**本地已装的原版插件。
+
+---
+
+### 一、装好原版插件（前提）
+
+在 Claude Code 中运行（见"快速开始"）：
+
+```
+> /plugin marketplace add thedotmack/claude-mem
+> /plugin install claude-mem
+```
+
+重启 Claude Code。
+
+---
+
+### 二、克隆中文版项目
+
+克隆这个项目（中文本地化版本）：
 
 ```bash
-git clone https://github.com/thedotmack/claude-mem.git
+git clone https://github.com/cfrs2005/claude-mem.git
 cd claude-mem
 npm install
 ```
 
-**常见问题：npm install 网络问题**
-
-如果遇到 npm 缓存权限错误：
+**npm 卡住？**
 
 ```bash
-# 清除 npm 缓存
 npm cache clean --force
-
-# 重试安装
 npm install
 ```
 
-### 编译和构建
+---
 
-构建所有 TypeScript 代码、React UI 和 Worker 服务：
+### 三、编译并同步
 
-```bash
-npm run build
-```
-
-输出文件位置：
-- `plugin/` - 构建的插件文件
-- `plugin/scripts/` - 编译后的 Hook 脚本（`*-hook.js`）
-- `plugin/ui/viewer.html` - React UI 构建文件
-- `plugin/ui/viewer-bundle.js` - React 包文件
-
-### 同步到本地插件目录
-
-构建后，同步到 Claude Code 的本地插件目录：
-
-```bash
-npm run sync-marketplace
-```
-
-这会复制文件到：
-- macOS/Linux: `~/.claude/plugins/marketplaces/thedotmack/claude-mem/`
-- Windows: `%USERPROFILE%\.claude\plugins\marketplaces\thedotmack\claude-mem\`
-
-### 重启 Worker 服务
-
-更改代码后，需要重启 Worker 服务让更改生效：
-
-```bash
-npm run worker:restart
-```
-
-查看 Worker 日志：
-
-```bash
-npm run worker:logs
-```
-
-### 完整工作流（推荐）
-
-一个命令完成构建、同步和重启：
+一条命令完成编译、同步、重启：
 
 ```bash
 npm run build-and-sync
 ```
 
-这相当于：
-1. ✅ `npm run build` - 编译所有代码
-2. ✅ `npm run sync-marketplace` - 同步到插件目录
-3. ✅ `npm run worker:restart` - 自动重启 Worker
+这会：
+1. 编译 TypeScript、React UI、Worker 服务
+2. 同步到 `~/.claude/plugins/marketplaces/thedotmack/claude-mem/`
+3. 自动重启 Worker 服务
+
+编译后重启 Claude Code，就用上中文版了。
+
+---
+
+### 四、开发工作流
+
+修改代码后：
+
+```bash
+# 仅编译
+npm run build
+
+# 仅同步
+npm run sync-marketplace
+
+# 仅重启 Worker
+npm run worker:restart
+
+# 查看 Worker 日志
+npm run worker:logs
+```
+
+或用 `npm run build-and-sync` 一键完成。
 
 ---
 
