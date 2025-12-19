@@ -4,6 +4,9 @@
  */
 
 import { logger } from '../utils/logger.js';
+import * as promptsZh from './prompts-zh.js';
+
+export type PromptLanguage = 'en' | 'zh';
 
 export interface Observation {
   id: number;
@@ -322,4 +325,27 @@ Remember that we record these observations as a way of helping us stay on track 
 
 MEMORY PROCESSING CONTINUED
 ===========================`;
+}
+
+/**
+ * Get prompt functions based on language preference
+ * Returns the appropriate prompt-building functions for the specified language
+ */
+export function getPrompts(language: PromptLanguage) {
+  if (language === 'zh') {
+    return {
+      buildInitPrompt: promptsZh.buildInitPrompt,
+      buildObservationPrompt: promptsZh.buildObservationPrompt,
+      buildSummaryPrompt: promptsZh.buildSummaryPrompt,
+      buildContinuationPrompt: promptsZh.buildContinuationPrompt,
+    };
+  }
+
+  // Default to English
+  return {
+    buildInitPrompt,
+    buildObservationPrompt,
+    buildSummaryPrompt,
+    buildContinuationPrompt,
+  };
 } 

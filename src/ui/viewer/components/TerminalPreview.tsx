@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useLayoutEffect, useState } from 'react';
 import AnsiToHtml from 'ansi-to-html';
+import { useI18n } from '../context/i18n';
 
 interface TerminalPreviewProps {
   content: string;
@@ -16,6 +17,7 @@ const ansiConverter = new AnsiToHtml({
 });
 
 export function TerminalPreview({ content, isLoading = false, className = '' }: TerminalPreviewProps) {
+  const { t } = useI18n();
   const preRef = useRef<HTMLPreElement>(null);
   const scrollTopRef = useRef(0);
   const [wordWrap, setWordWrap] = useState(true);
@@ -104,9 +106,9 @@ export function TerminalPreview({ content, isLoading = false, className = '' }: 
             e.currentTarget.style.borderColor = wordWrap ? 'var(--color-border-primary)' : 'var(--color-accent-primary)';
             e.currentTarget.style.color = wordWrap ? 'var(--color-text-secondary)' : 'var(--color-accent-primary)';
           }}
-          title={wordWrap ? 'Disable word wrap (scroll horizontally)' : 'Enable word wrap'}
+          title={wordWrap ? t('terminalPreview.disableWrap') : t('terminalPreview.enableWrap')}
         >
-          {wordWrap ? '⤢ Wrap' : '⇄ Scroll'}
+          {wordWrap ? t('terminalPreview.wrap') : t('terminalPreview.scroll')}
         </button>
       </div>
 
@@ -120,7 +122,7 @@ export function TerminalPreview({ content, isLoading = false, className = '' }: 
             color: 'var(--color-text-secondary)'
           }}
         >
-          Loading preview...
+          {t('terminalPreview.loading')}
         </div>
       ) : (
         <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>

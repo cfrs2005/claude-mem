@@ -1,0 +1,106 @@
+{
+  "header": {
+    "allProjects": "All Projects",
+    "settings": "Settings",
+    "discordCommunity": "Join our Discord community"
+  },
+  "feed": {
+    "noItems": "No items to display",
+    "loadingMore": "Loading more...",
+    "noMoreItems": "No more items to load"
+  },
+  "observationCard": {
+    "untitled": "Untitled",
+    "facts": "facts",
+    "narrative": "narrative",
+    "read": "read:",
+    "modified": "modified:"
+  },
+  "summaryCard": {
+    "investigated": "Investigated",
+    "learned": "Learned",
+    "completed": "Completed",
+    "nextSteps": "Next Steps",
+    "sessionSummary": "Session Summary",
+    "sessionId": "Session #"
+  },
+  "promptCard": {
+    "prompt": "Prompt"
+  },
+  "contextSettingsModal": {
+    "settings": "Settings",
+    "documentation": "Documentation",
+    "twitter": "X (Twitter)",
+    "previewFor": "Preview for:",
+    "loading": "Loading",
+    "observations": "Observations",
+    "howManyObservations": "How many observations to inject",
+    "observationsInputLabel": "Observations",
+    "observationsTooltip": "Number of recent observations to include in context (1-200)",
+    "sessions": "Sessions",
+    "sessionsInputLabel": "Sessions",
+    "sessionsTooltip": "Number of recent sessions to pull observations from (1-50)",
+    "filters": "Filters",
+    "whichTypes": "Which observation types to include",
+    "type": "Type",
+    "concept": "Concept",
+    "all": "All",
+    "none": "None",
+    "display": "Display",
+    "whatToShow": "What to show in context tables",
+    "fullObservations": "Full Observations",
+    "count": "Count",
+    "expandedDetails": "How many observations show expanded details (0-20)",
+    "field": "Field",
+    "whichField": "Which field to expand for full observations",
+    "narrative": "Narrative",
+    "facts": "Facts",
+    "tokenEconomics": "Token Economics",
+    "readCost": "Read cost",
+    "readCostDescription": "Tokens to read this observation",
+    "workInvestment": "Work investment",
+    "workInvestmentDescription": "Tokens spent creating this observation",
+    "savings": "Savings",
+    "savingsDescription": "Total tokens saved by reusing context",
+    "advanced": "Advanced",
+    "modelSelection": "Model selection and integrations",
+    "model": "Model",
+    "modelDescription": "AI model used for generating observations",
+    "haikuOption": "haiku (fastest)",
+    "sonnetOption": "sonnet (balanced)",
+    "opusOption": "opus (highest quality)",
+    "workerPort": "Worker Port",
+    "workerPortDescription": "Port for the background worker service",
+    "includeLastSummary": "Include last summary",
+    "includeLastSummaryDescription": "Add previous session's summary to context",
+    "includeLastMessage": "Include last message",
+    "includeLastMessageDescription": "Add previous session's final message",
+    "contentLanguage": "Content Language",
+    "contentLanguageDescription": "Language for AI-generated observations and summaries",
+    "languageEnglish": "English",
+    "languageChinese": "中文 (Chinese)"
+  },
+  "terminalPreview": {
+    "loading": "Loading preview...",
+    "disableWrap": "Disable word wrap (scroll horizontally)",
+    "enableWrap": "Enable word wrap",
+    "wrap": "⤢ Wrap",
+    "scroll": "⇄ Scroll"
+  },
+  "themeToggle": {
+    "lightTheme": "Theme: Light (click for Dark)",
+    "darkTheme": "Theme: Dark (click for System)",
+    "systemTheme": "Theme: System (click for Light)"
+  },
+  "scrollToTop": {
+    "scrollToTop": "Scroll to top"
+  },
+  "errorBoundary": {
+    "error": "Something went wrong",
+    "errorMessage": "The application encountered an error. Please refresh the page to try again.",
+    "errorDetails": "Error details"
+  },
+  "githubStarsButton": {
+    "github": "GitHub"
+  }
+}
