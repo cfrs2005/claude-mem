@@ -1,5 +1,4 @@
 <h1 align="center">
-  <br><img width="3552" height="1806" alt="mem-cn" src="https://github.com/user-attachments/assets/c7b28526-4e30-471b-9060-aace5d9916bb" />
 
   <a href="https://github.com/cfrs2005/claude-mem">
     <picture>
@@ -25,6 +24,8 @@
   </a>
 </p>
 
+<br>
+  <br><img width="3552" height="1806" alt="mem-cn" src="https://github.com/user-attachments/assets/c7b28526-4e30-471b-9060-aace5d9916bb" />
 <br>
 
 ## 快速开始
