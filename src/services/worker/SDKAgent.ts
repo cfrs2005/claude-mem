@@ -86,12 +86,23 @@ export class SDKAgent {
 
     // Run Agent SDK query loop
     // Only resume if we have a captured memory session ID
+    const apiEnv = this.getApiEnvironment();
+    const hasCustomApi = Object.keys(apiEnv).length > 0;
+
+    if (hasCustomApi) {
+      logger.info('SDK', 'Using custom API endpoint', {
+        hasBaseUrl: !!apiEnv.ANTHROPIC_BASE_URL,
+        hasAuthToken: !!apiEnv.ANTHROPIC_API_KEY
+      });
+    }
+
     const queryResult = query({
       prompt: messageGenerator,
       options: {
         model: modelId,
         // Resume with captured memorySessionId (null on first prompt, real ID on subsequent)
         ...(hasRealMemorySessionId && { resume: session.memorySessionId }),
+        ...(hasCustomApi && { env: { ...process.env, ...apiEnv } }),
         disallowedTools,
         abortController: session.abortController,
         pathToClaudeCodeExecutable: claudePath
@@ -358,5 +369,24 @@ export class SDKAgent {
     const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
     return settings.CLAUDE_MEM_MODEL;
+  }
+
+  /**
+   * Get custom API environment variables from settings
+   * Maps MEM_ANTHROPIC_* settings to ANTHROPIC_* env vars for Claude Code subprocess
+   */
+  private getApiEnvironment(): Record<string, string> {
+    const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+    const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
+    const env: Record<string, string> = {};
+
+    if (settings.MEM_ANTHROPIC_BASE_URL) {
+      env.ANTHROPIC_BASE_URL = settings.MEM_ANTHROPIC_BASE_URL;
+    }
+    if (settings.MEM_ANTHROPIC_AUTH_TOKEN) {
+      env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;
+    }
+
+    return env;
   }
 }
