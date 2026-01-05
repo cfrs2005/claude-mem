@@ -1,21 +1,40 @@
 # Release v8.6.0 (Chinese Localization Edition)
 
-This release introduces comprehensive Chinese localization and support for custom API endpoints, specifically optimized for **Zhipu GLM-4.7**.
+This release is a **hard fork** based on the official `thedotmack/claude-mem` v8.5.9, incorporating their recent ~200 commits of architectural improvements while solving critical localization and compatibility issues for Chinese developers.
 
-## 🌟 Key Features
+## 🚀 Key Problems Fixed (Relative to Upstream)
 
-### 1. 🇨🇳 Deep Chinese Localization
-- **Full UI Translation**: Settings, Summary Cards, Observation Feeds, and Loading states are fully translated into professional Chinese.
-- **Terminology Polish**: Used native/professional terms (e.g., "知识沉淀", "问题调研") instead of machine translation.
-- **Optimized Prompts**: `code--zh` mode is now the default, with system prompts tuned for Chinese context.
+### 1. Fixed: Hardcoded API Endpoints (Critical for GLM/Domestic Models)
+- **Problem**: The official version hardcodes the Anthropic API URL, making it impossible to use domestic models like **Zhipu GLM-4.7** or **FoxCode** which are API-compatible but require a different `Base URL`.
+- **Solution**: We refactored `SDKAgent.ts` and `worker-service.ts` to respect `MEM_ANTHROPIC_BASE_URL` from `settings.json`. This unlocks the use of affordable, high-performance domestic models.
 
-### 2. 🔌 Custom API & Model Support
-- **Flexible Configuration**: Support for custom `MEM_ANTHROPIC_BASE_URL` in `~/.claude-mem/settings.json`.
-- **GLM-4.7 Support**: Verified compatibility with Zhipu AI's GLM-4.7 model (via Anthropic API protocol).
+### 2. Fixed: English-Only Interface Usability
+- **Problem**: The web UI (Summary, Observations, Settings) was entirely in English, creating cognitive friction for non-native speakers.
+- **Solution**: Implemented a lightweight i18n system (`src/ui/viewer/utils/i18n.ts`).
+    - **Full Translation**: All labels, buttons, and status messages are now in professional Chinese.
+    - **Native Terminology**: Polished terms like "问题调研" (Investigated) instead of raw translations.
 
-### 3. 🛠 Configuration
-- Added detailed configuration guide in `README.md`.
-- Default mode set to `code--zh`.
+### 3. Fixed: Non-Native Prompting
+- **Problem**: Default system prompts enforced English output and Western logical structures.
+- **Solution**: Upgraded `code--zh` mode to be the default. System prompts are re-engineered to instruct the AI to think and reply in native Chinese, improving the quality of generated summaries and logs.
+
+## 🏗 Upstream Foundation (v8.5.9)
+This release inherits all recent improvements from the official `thedotmack` repository (commits `f1ccc22` and prior), including but not limited to:
+- **Modular Architecture**: Decomposed monolithic services for better stability (PR #534, #538).
+- **Error Handling**: Comprehensive error logging for worker services (#528, #522).
+- **Cursor Integration**: Recent support for Cursor IDE hooks (v8.5.0+).
+- **Context Timestamps**: Added timestamps to context headers for better temporal awareness (v8.5.9).
+
+## 🛠 Configuration Guide (GLM-4.7 Example)
+```json
+// ~/.claude-mem/settings.json
+{
+  "MEM_ANTHROPIC_BASE_URL": "https://open.bigmodel.cn/api/anthropic",
+  "MEM_ANTHROPIC_AUTH_TOKEN": "your-api-key",
+  "CLAUDE_MEM_MODE": "code--zh",
+  "CLAUDE_MEM_MODEL": "GLM-4.7"
+}
+```
 
 ## 📦 Installation
 ```bash
