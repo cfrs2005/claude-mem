@@ -28,6 +28,24 @@
   <br><img width="3552" height="1806" alt="mem-cn" src="https://github.com/user-attachments/assets/c7b28526-4e30-471b-9060-aace5d9916bb" />
 <br>
 
+
+## 🚀 推荐资源 & 福利
+
+### 智谱 GLM Coding (适配本插件)
+本插件完美支持智谱 GLM-4.7 模型。超值订阅，邀你一起薅羊毛！Claude Code、Cline 等 20+ 大编程工具无缝支持，“码力”全开，越拼越爽！
+
+**配置指南**:
+- **API Base URL**: `https://open.bigmodel.cn/api/anthropic`
+- **Model**: `GLM-4.7`
+- **Mode**: `code--zh` (默认)
+
+👉 [**立即开拼，享限时惊喜价！**](https://www.bigmodel.cn/glm-coding?ic=H0RNPV3LNZ)
+
+### FoxCode 转发服务
+claudecode转发服务，3000w日token，每天重置。惊喜不断，性能效果卓越。
+
+👉 [**立即注册 FoxCode**](https://foxcode.rjj.cc/auth/register?aff=IHEDRQ6V)
+
 ## 使用中文版本
 
 ### 为什么要克隆这个项目？
@@ -169,19 +187,3 @@ npm run worker:logs
 - [Claude-Mem 记忆搜索：从日记本里找内容](https://www.80aj.com/2025/12/18/claudememjiyisousuocongrijibenlizhaoneirong/)
 - [理解 Claude-mem：后台交互与中英文术语对照](https://www.80aj.com/2025/12/18/lijieclaudememhoutaijiaohuyuzhongyingwenshuyuduizhao/)
 
-## 🚀 推荐资源 & 福利
-
-### 智谱 GLM Coding (适配本插件)
-本插件完美支持智谱 GLM-4.7 模型。超值订阅，邀你一起薅羊毛！Claude Code、Cline 等 20+ 大编程工具无缝支持，“码力”全开，越拼越爽！
-
-**配置指南**:
-- **API Base URL**: `https://open.bigmodel.cn/api/anthropic`
-- **Model**: `GLM-4.7`
-- **Mode**: `code--zh` (默认)
-
-👉 [**立即开拼，享限时惊喜价！**](https://www.bigmodel.cn/glm-coding?ic=H0RNPV3LNZ)
-
-### FoxCode 转发服务
-claudecode转发服务，3000w日token，每天重置。惊喜不断，性能效果卓越。
-
-👉 [**立即注册 FoxCode**](https://foxcode.rjj.cc/auth/register?aff=IHEDRQ6V)
