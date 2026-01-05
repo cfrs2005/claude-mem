@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useLayoutEffect, useState } from 'react';
+import { t } from '../utils/i18n';
 import AnsiToHtml from 'ansi-to-html';
 
 interface TerminalPreviewProps {
@@ -120,7 +121,7 @@ export function TerminalPreview({ content, isLoading = false, className = '' }: 
             color: 'var(--color-text-secondary)'
           }}
         >
-          Loading preview...
+          {t("Loading preview...")}
         </div>
       ) : (
         <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>

@@ -5,6 +5,7 @@ import { SummaryCard } from './SummaryCard';
 import { PromptCard } from './PromptCard';
 import { ScrollToTop } from './ScrollToTop';
 import { UI } from '../constants/ui';
+import { t } from '../utils/i18n';
 
 interface FeedProps {
   observations: Observation[];
@@ -82,7 +83,7 @@ export function Feed({ observations, summaries, prompts, onLoadMore, isLoading, 
         {isLoading && (
           <div style={{ textAlign: 'center', padding: '20px', color: '#8b949e' }}>
             <div className="spinner" style={{ display: 'inline-block', marginRight: '10px' }}></div>
-            Loading more...
+            {t("Loading more...")}
           </div>
         )}
         {hasMore && !isLoading && items.length > 0 && (

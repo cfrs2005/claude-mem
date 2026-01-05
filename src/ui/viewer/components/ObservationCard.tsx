@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Observation } from '../types';
 import { formatDate } from '../utils/formatters';
+import { t } from '../utils/i18n';
 
 interface ObservationCardProps {
   observation: Observation;
@@ -50,7 +51,7 @@ export function ObservationCard({ observation }: ObservationCardProps) {
       <div className="card-header">
         <div className="card-header-left">
           <span className={`card-type type-${observation.type}`}>
-            {observation.type}
+            {t(observation.type)}
           </span>
           <span className="card-project">{observation.project}</span>
         </div>
@@ -67,7 +68,7 @@ export function ObservationCard({ observation }: ObservationCardProps) {
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
-              <span>facts</span>
+              <span>{t("facts")}</span>
             </button>
           )}
           {observation.narrative && (
@@ -84,7 +85,7 @@ export function ObservationCard({ observation }: ObservationCardProps) {
                 <line x1="16" y1="13" x2="8" y2="13"></line>
                 <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
-              <span>narrative</span>
+              <span>{t("narrative")}</span>
             </button>
           )}
         </div>
@@ -131,12 +132,12 @@ export function ObservationCard({ observation }: ObservationCardProps) {
             ))}
             {filesRead.length > 0 && (
               <span className="meta-files">
-                <span className="file-label">read:</span> {filesRead.join(', ')}
+                <span className="file-label">{t("read")}:</span> {filesRead.join(', ')}
               </span>
             )}
             {filesModified.length > 0 && (
               <span className="meta-files">
-                <span className="file-label">modified:</span> {filesModified.join(', ')}
+                <span className="file-label">{t("modified")}:</span> {filesModified.join(', ')}
               </span>
             )}
           </div>

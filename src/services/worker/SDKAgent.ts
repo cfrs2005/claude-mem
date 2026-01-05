@@ -96,12 +96,48 @@ export class SDKAgent {
       });
     }
 
+    // CRITICAL: Disable resume when using custom API endpoints
+    // Third-party API proxies (like 智谱) don't store session state, so resume will fail
+    const shouldResume = hasRealMemorySessionId && !hasCustomApi;
+
+    if (hasCustomApi && hasRealMemorySessionId) {
+      logger.info('SDK', 'Resume disabled for custom API endpoint', {
+        sessionDbId: session.sessionDbId,
+        memorySessionId: session.memorySessionId
+      });
+    }
+
+    // Debug: Log the actual env being passed
+    if (hasCustomApi) {
+      logger.info('SDK', 'Custom API env being passed to SDK', {
+        sessionDbId: session.sessionDbId,
+        ANTHROPIC_BASE_URL: apiEnv.ANTHROPIC_BASE_URL,
+        hasApiKey: !!apiEnv.ANTHROPIC_API_KEY
+      });
+
+      // WORKAROUND: Set env vars directly on process.env
+      // The SDK's env parameter may not work correctly with custom API endpoints
+      process.env.ANTHROPIC_BASE_URL = apiEnv.ANTHROPIC_BASE_URL;
+      process.env.ANTHROPIC_API_KEY = apiEnv.ANTHROPIC_API_KEY;
+      logger.info('SDK', 'Set process.env directly for custom API', {
+        sessionDbId: session.sessionDbId
+      });
+    }
+
+    logger.info('SDK', 'Calling query() function', {
+      sessionDbId: session.sessionDbId,
+      model: modelId,
+      shouldResume,
+      hasCustomApi,
+      claudePath
+    });
+
     const queryResult = query({
       prompt: messageGenerator,
       options: {
         model: modelId,
-        // Resume with captured memorySessionId (null on first prompt, real ID on subsequent)
-        ...(hasRealMemorySessionId && { resume: session.memorySessionId }),
+        // Only resume with official Anthropic API (custom proxies don't support session state)
+        ...(shouldResume && { resume: session.memorySessionId }),
         ...(hasCustomApi && { env: { ...process.env, ...apiEnv } }),
         disallowedTools,
         abortController: session.abortController,
@@ -109,93 +145,120 @@ export class SDKAgent {
       }
     });
 
-    // Process SDK messages
-    for await (const message of queryResult) {
-      // Capture memory session ID from first SDK message (any type has session_id)
-      // This enables resume for subsequent generator starts within the same user session
-      if (!session.memorySessionId && message.session_id) {
-        session.memorySessionId = message.session_id;
-        // Persist to database for cross-restart recovery
-        this.dbManager.getSessionStore().updateMemorySessionId(
-          session.sessionDbId,
-          message.session_id
-        );
-        logger.info('SDK', 'Captured memory session ID', {
+    logger.info('SDK', 'query() returned, starting for-await loop', {
+      sessionDbId: session.sessionDbId
+    });
+
+    // Process SDK messages with error capture
+    try {
+      for await (const message of queryResult) {
+        // Log every message received from SDK
+        logger.info('SDK', 'Message received from API', {
           sessionDbId: session.sessionDbId,
-          memorySessionId: message.session_id
+          messageType: message.type,
+          hasSessionId: !!message.session_id
         });
-        // SESSION ALIGNMENT LOG: Memory session ID captured - now contentSessionId→memorySessionId mapping is complete
-        logger.info('SDK', `[ALIGNMENT] Captured | contentSessionId=${session.contentSessionId} → memorySessionId=${message.session_id} | Future prompts will resume with this ID`);
-      }
+        // Capture memory session ID from first SDK message (any type has session_id)
+        // This enables resume for subsequent generator starts within the same user session
+        if (!session.memorySessionId && message.session_id) {
+          session.memorySessionId = message.session_id;
+          // Persist to database for cross-restart recovery
+          this.dbManager.getSessionStore().updateMemorySessionId(
+            session.sessionDbId,
+            message.session_id
+          );
+          logger.info('SDK', 'Captured memory session ID', {
+            sessionDbId: session.sessionDbId,
+            memorySessionId: message.session_id
+          });
+          // SESSION ALIGNMENT LOG: Memory session ID captured - now contentSessionId→memorySessionId mapping is complete
+          logger.info('SDK', `[ALIGNMENT] Captured | contentSessionId=${session.contentSessionId} → memorySessionId=${message.session_id} | Future prompts will resume with this ID`);
+        }
 
-      // Handle assistant messages
-      if (message.type === 'assistant') {
-        const content = message.message.content;
-        const textContent = Array.isArray(content)
-          ? content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
-          : typeof content === 'string' ? content : '';
+        // Handle assistant messages
+        if (message.type === 'assistant') {
+          const content = message.message.content;
+          const textContent = Array.isArray(content)
+            ? content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
+            : typeof content === 'string' ? content : '';
 
-        const responseSize = textContent.length;
+          const responseSize = textContent.length;
 
-        // Capture token state BEFORE updating (for delta calculation)
-        const tokensBeforeResponse = session.cumulativeInputTokens + session.cumulativeOutputTokens;
+          // Capture token state BEFORE updating (for delta calculation)
+          const tokensBeforeResponse = session.cumulativeInputTokens + session.cumulativeOutputTokens;
 
-        // Extract and track token usage
-        const usage = message.message.usage;
-        if (usage) {
-          session.cumulativeInputTokens += usage.input_tokens || 0;
-          session.cumulativeOutputTokens += usage.output_tokens || 0;
+          // Extract and track token usage
+          const usage = message.message.usage;
+          if (usage) {
+            session.cumulativeInputTokens += usage.input_tokens || 0;
+            session.cumulativeOutputTokens += usage.output_tokens || 0;
 
-          // Cache creation counts as discovery, cache read doesn't
-          if (usage.cache_creation_input_tokens) {
-            session.cumulativeInputTokens += usage.cache_creation_input_tokens;
+            // Cache creation counts as discovery, cache read doesn't
+            if (usage.cache_creation_input_tokens) {
+              session.cumulativeInputTokens += usage.cache_creation_input_tokens;
+            }
+
+            logger.debug('SDK', 'Token usage captured', {
+              sessionId: session.sessionDbId,
+              inputTokens: usage.input_tokens,
+              outputTokens: usage.output_tokens,
+              cacheCreation: usage.cache_creation_input_tokens || 0,
+              cacheRead: usage.cache_read_input_tokens || 0,
+              cumulativeInput: session.cumulativeInputTokens,
+              cumulativeOutput: session.cumulativeOutputTokens
+            });
           }
 
-          logger.debug('SDK', 'Token usage captured', {
-            sessionId: session.sessionDbId,
-            inputTokens: usage.input_tokens,
-            outputTokens: usage.output_tokens,
-            cacheCreation: usage.cache_creation_input_tokens || 0,
-            cacheRead: usage.cache_read_input_tokens || 0,
-            cumulativeInput: session.cumulativeInputTokens,
-            cumulativeOutput: session.cumulativeOutputTokens
-          });
+          // Calculate discovery tokens (delta for this response only)
+          const discoveryTokens = (session.cumulativeInputTokens + session.cumulativeOutputTokens) - tokensBeforeResponse;
+
+          // Process response (empty or not) and mark messages as processed
+          // Capture earliest timestamp BEFORE processing (will be cleared after)
+          const originalTimestamp = session.earliestPendingTimestamp;
+
+          if (responseSize > 0) {
+            const truncatedResponse = responseSize > 100
+              ? textContent.substring(0, 100) + '...'
+              : textContent;
+            logger.dataOut('SDK', `Response received (${responseSize} chars)`, {
+              sessionId: session.sessionDbId,
+              promptNumber: session.lastPromptNumber
+            }, truncatedResponse);
+          }
+
+          // Parse and process response using shared ResponseProcessor
+          await processAgentResponse(
+            textContent,
+            session,
+            this.dbManager,
+            this.sessionManager,
+            worker,
+            discoveryTokens,
+            originalTimestamp,
+            'SDK'
+          );
         }
 
-        // Calculate discovery tokens (delta for this response only)
-        const discoveryTokens = (session.cumulativeInputTokens + session.cumulativeOutputTokens) - tokensBeforeResponse;
-
-        // Process response (empty or not) and mark messages as processed
-        // Capture earliest timestamp BEFORE processing (will be cleared after)
-        const originalTimestamp = session.earliestPendingTimestamp;
-
-        if (responseSize > 0) {
-          const truncatedResponse = responseSize > 100
-            ? textContent.substring(0, 100) + '...'
-            : textContent;
-          logger.dataOut('SDK', `Response received (${responseSize} chars)`, {
-            sessionId: session.sessionDbId,
-            promptNumber: session.lastPromptNumber
-          }, truncatedResponse);
+        // Log result messages
+        if (message.type === 'result' && message.subtype === 'success') {
+          // Usage telemetry is captured at SDK level
         }
-
-        // Parse and process response using shared ResponseProcessor
-        await processAgentResponse(
-          textContent,
-          session,
-          this.dbManager,
-          this.sessionManager,
-          worker,
-          discoveryTokens,
-          originalTimestamp,
-          'SDK'
-        );
       }
+    } catch (sdkError: any) {
+      // CRITICAL: Log any SDK/API errors
+      logger.failure('SDK', 'API call failed', {
+        sessionDbId: session.sessionDbId,
+        error: sdkError?.message || String(sdkError),
+        stack: sdkError?.stack?.substring(0, 500)
+      }, sdkError);
 
-      // Log result messages
-      if (message.type === 'result' && message.subtype === 'success') {
-        // Usage telemetry is captured at SDK level
+      // Helpful hint for 401 errors
+      if (typeof sdkError?.message === 'string' && sdkError.message.includes('401')) {
+        logger.failure('SDK', 'Authentication failed (401). Please check your API key and Base URL settings.', {
+          hint: 'If using a custom provider, ensure MEM_ANTHROPIC_BASE_URL does not end with /messages'
+        });
       }
+      throw sdkError; // Re-throw to propagate
     }
 
     // Mark session complete
@@ -381,7 +444,15 @@ export class SDKAgent {
     const env: Record<string, string> = {};
 
     if (settings.MEM_ANTHROPIC_BASE_URL) {
-      env.ANTHROPIC_BASE_URL = settings.MEM_ANTHROPIC_BASE_URL;
+      let baseUrl = settings.MEM_ANTHROPIC_BASE_URL;
+      // Robustness: Strip trailing /messages if user pasted full endpoint
+      if (baseUrl.endsWith('/messages')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - '/messages'.length);
+      }
+      if (baseUrl.endsWith('/')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      }
+      env.ANTHROPIC_BASE_URL = baseUrl;
     }
     if (settings.MEM_ANTHROPIC_AUTH_TOKEN) {
       env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;

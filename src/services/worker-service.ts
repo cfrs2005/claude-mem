@@ -739,6 +739,36 @@ async function main() {
 
     case '--daemon':
     default: {
+      // Set custom API env vars at worker startup (before any SDK subprocess is spawned)
+      const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+      try {
+        const settingsContent = readFileSync(settingsPath, 'utf-8');
+        const settings = JSON.parse(settingsContent);
+        if (settings.MEM_ANTHROPIC_BASE_URL) {
+          let baseUrl = settings.MEM_ANTHROPIC_BASE_URL;
+          // Robustness: Strip trailing /messages if user pasted full endpoint
+          if (baseUrl.endsWith('/messages')) {
+            baseUrl = baseUrl.substring(0, baseUrl.length - '/messages'.length);
+          }
+          // Robustness: Strip trailing slash
+          if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+          }
+
+          process.env.ANTHROPIC_BASE_URL = baseUrl;
+          logger.info('SYSTEM', 'Set ANTHROPIC_BASE_URL from settings', {
+            original: settings.MEM_ANTHROPIC_BASE_URL,
+            final: baseUrl
+          });
+        }
+        if (settings.MEM_ANTHROPIC_AUTH_TOKEN) {
+          process.env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;
+          logger.info('SYSTEM', 'Set ANTHROPIC_API_KEY from settings');
+        }
+      } catch (e) {
+        // Settings file may not exist, that's OK
+      }
+
       const worker = new WorkerService();
       worker.start().catch((error) => {
         logger.failure('SYSTEM', 'Worker failed to start', {}, error as Error);

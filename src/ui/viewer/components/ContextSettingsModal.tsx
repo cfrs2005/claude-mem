@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { Settings } from '../types';
 import { TerminalPreview } from './TerminalPreview';
 import { useContextPreview } from '../hooks/useContextPreview';
+import { t } from '../utils/i18n';
 
 interface ContextSettingsModalProps {
   isOpen: boolean;
@@ -83,14 +84,14 @@ function ChipGroup({
             className={`chip-action ${allSelected ? 'active' : ''}`}
             onClick={onSelectAll}
           >
-            All
+            {t("All")}
           </button>
           <button
             type="button"
             className={`chip-action ${noneSelected ? 'active' : ''}`}
             onClick={onSelectNone}
           >
-            None
+            {t("None")}
           </button>
         </div>
       </div>
@@ -248,10 +249,10 @@ export function ContextSettingsModal({
       <div className="context-settings-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
-          <h2>Settings</h2>
+          <h2>{t("Settings")}</h2>
           <div className="header-controls">
             <label className="preview-selector">
-              Preview for:
+              {t("Preview for:")}
               <select
                 value={selectedProject || ''}
                 onChange={(e) => setSelectedProject(e.target.value)}
@@ -293,11 +294,11 @@ export function ContextSettingsModal({
           <div className="settings-column">
             {/* Section 1: Loading */}
             <CollapsibleSection
-              title="Loading"
+              title={t("Loading")}
               description="How many observations to inject"
             >
               <FormField
-                label="Observations"
+                label={t("Observations")}
                 tooltip="Number of recent observations to include in context (1-200)"
               >
                 <input
@@ -309,7 +310,7 @@ export function ContextSettingsModal({
                 />
               </FormField>
               <FormField
-                label="Sessions"
+                label={t("Sessions")}
                 tooltip="Number of recent sessions to pull observations from (1-50)"
               >
                 <input
@@ -324,11 +325,11 @@ export function ContextSettingsModal({
 
             {/* Section 2: Filters */}
             <CollapsibleSection
-              title="Filters"
+              title={t("Filters")}
               description="Which observation types to include"
             >
               <ChipGroup
-                label="Type"
+                label={t("Type")}
                 options={observationTypes}
                 selectedValues={getArrayValues('CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES')}
                 onToggle={(value) => toggleArrayValue('CLAUDE_MEM_CONTEXT_OBSERVATION_TYPES', value)}
@@ -347,11 +348,11 @@ export function ContextSettingsModal({
 
             {/* Section 3: Display */}
             <CollapsibleSection
-              title="Display"
+              title={t("Display")}
               description="What to show in context tables"
             >
               <div className="display-subsection">
-                <span className="subsection-label">Full Observations</span>
+                <span className="subsection-label">{t("Full Observations")}</span>
                 <FormField
                   label="Count"
                   tooltip="How many observations show expanded details (0-20)"
@@ -379,25 +380,25 @@ export function ContextSettingsModal({
               </div>
 
               <div className="display-subsection">
-                <span className="subsection-label">Token Economics</span>
+                <span className="subsection-label">{t("Token Economics")}</span>
                 <div className="toggle-group">
                   <ToggleSwitch
                     id="show-read-tokens"
-                    label="Read cost"
+                    label={t("Read cost")}
                     description="Tokens to read this observation"
                     checked={formState.CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS === 'true'}
                     onChange={() => toggleBoolean('CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS')}
                   />
                   <ToggleSwitch
                     id="show-work-tokens"
-                    label="Work investment"
+                    label={t("Work investment")}
                     description="Tokens spent creating this observation"
                     checked={formState.CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS === 'true'}
                     onChange={() => toggleBoolean('CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS')}
                   />
                   <ToggleSwitch
                     id="show-savings-amount"
-                    label="Savings"
+                    label={t("Savings")}
                     description="Total tokens saved by reusing context"
                     checked={formState.CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT === 'true'}
                     onChange={() => toggleBoolean('CLAUDE_MEM_CONTEXT_SHOW_SAVINGS_AMOUNT')}
@@ -408,12 +409,12 @@ export function ContextSettingsModal({
 
             {/* Section 4: Advanced */}
             <CollapsibleSection
-              title="Advanced"
+              title={t("Advanced")}
               description="AI provider and model selection"
               defaultOpen={false}
             >
               <FormField
-                label="AI Provider"
+                label={t("AI Provider")}
                 tooltip="Choose between Claude (via Agent SDK) or Gemini (via REST API)"
               >
                 <select
@@ -428,7 +429,7 @@ export function ContextSettingsModal({
 
               {formState.CLAUDE_MEM_PROVIDER === 'claude' && (
                 <FormField
-                  label="Claude Model"
+                  label={t("Claude Model")}
                   tooltip="Claude model used for generating observations"
                 >
                   <select
@@ -530,7 +531,7 @@ export function ContextSettingsModal({
               )}
 
               <FormField
-                label="Worker Port"
+                label={t("Worker Port")}
                 tooltip="Port for the background worker service"
               >
                 <input
@@ -572,7 +573,7 @@ export function ContextSettingsModal({
             onClick={handleSave}
             disabled={isSaving}
           >
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? t("Saving") : t("Save")}
           </button>
         </div>
       </div>
