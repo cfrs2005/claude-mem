@@ -48,15 +48,30 @@ claudecode转发服务，3000w日token，每天重置。惊喜不断，性能效
 
 ## 使用中文版本
 
-### 为什么要克隆这个项目？
+### 为什么要使用这个分支？
 
-这是 `thedotmack/claude-mem` **原版的中文本地化版本**。
+除了**全界面/提示词的深度汉化**，本分支核心解决了**国内模型适配**痛点：
 
-**两种用法**：
-- **只用中文**：装原版插件，克隆这个项目，编译同步即可
-- **修改功能**：在这个项目基础上修改代码，编译同步
+1.  **支持自定义模型端点 (GLM/FoxCode 等)**：
+    原版仅支持 Anthropic 官方 API。本分支修改了底层连接逻辑，支持通过 `~/.claude-mem/settings.json` 配置自定义 Endpoint，完美适配 **智谱 GLM-4.7** 等兼容 Anthropic 协议的国产模型。
 
-核心是：编译后的文件会**替代**本地已装的原版插件。
+2.  **配置更灵活**：
+    引入了以下环境变量配置，无需修改代码即可切换模型服务商：
+    ```json
+    // ~/.claude-mem/settings.json
+    {
+      "MEM_ANTHROPIC_BASE_URL": "https://open.bigmodel.cn/api/anthropic",
+      "MEM_ANTHROPIC_AUTH_TOKEN": "your-api-key",
+      "CLAUDE_MEM_MODE": "code--zh",
+      "CLAUDE_MEM_MODEL": "GLM-4.7"
+    }
+    ```
+
+3.  **更友好的中文体验**：
+    - **UI 汉化**：设置面板、状态卡片、Loading 提示全中文，专业术语校对（如"知识沉淀"、"问题调研"）。
+    - **Prompt 优化**：针对中文语境优化的系统提示词，让 AI 输出更符合中文开发者阅读习惯的内容。
+
+核心是：编译后的文件会**替代**本地已装的原版插件，让你即刻拥有"更懂中文"的持久化记忆。
 
 ---
 
