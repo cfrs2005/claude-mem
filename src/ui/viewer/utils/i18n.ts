@@ -14,9 +14,6 @@ export const translations: Record<string, string> = {
 
     // Labels
     "Settings": "系统设置",
-    "Observations": "记忆碎片", // More poetic/tech "Memory Fragments" or keep "观察记录" (Observations). Let's stick to professional: "观察记录" -> "记忆语料" or just "观察记录" is fine. User wants "Pro". "记忆语料" (Memory Corpus) is good but might deviate. Let's use "观察记录" but make others better.
-    // Actually "Observations" in this context is the core entity. "洞察记录" (Insights)?
-    // Let's go with "观察记录" (Standard) or "记忆单元" (Memory Units). Stick to "观察记录" for safety but upgrade context.
     "Observations": "观察记录",
     "Sessions": "会话列表",
     "Filters": "筛选维度",
