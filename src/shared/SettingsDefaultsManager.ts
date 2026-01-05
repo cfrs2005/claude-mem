@@ -22,6 +22,9 @@ export interface SettingsDefaults {
   CLAUDE_MEM_LOG_LEVEL: string;
   CLAUDE_MEM_PYTHON_VERSION: string;
   CLAUDE_CODE_PATH: string;
+  // API Configuration (for independent API endpoint)
+  MEM_ANTHROPIC_BASE_URL: string;
+  MEM_ANTHROPIC_AUTH_TOKEN: string;
   // Localization
   CLAUDE_MEM_CONTENT_LANGUAGE: string;
   // Token Economics
@@ -56,6 +59,9 @@ export class SettingsDefaultsManager {
     CLAUDE_MEM_LOG_LEVEL: 'INFO',
     CLAUDE_MEM_PYTHON_VERSION: '3.13',
     CLAUDE_CODE_PATH: '', // Empty means auto-detect via 'which claude'
+    // API Configuration (for independent API endpoint, empty = use Claude Code's default)
+    MEM_ANTHROPIC_BASE_URL: '',
+    MEM_ANTHROPIC_AUTH_TOKEN: '',
     // Localization
     CLAUDE_MEM_CONTENT_LANGUAGE: 'en', // 'en' for English, 'zh' for Chinese
     // Token Economics

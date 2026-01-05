@@ -64,15 +64,28 @@ export class SDKAgent {
       // Create message generator (event-driven)
       const messageGenerator = this.createMessageGenerator(session);
 
+      // Build SDK options with optional custom API endpoint
+      const sdkOptions: any = {
+        model: modelId,
+        disallowedTools,
+        abortController: session.abortController,
+        pathToClaudeCodeExecutable: claudePath
+      };
+
+      // Inject custom API configuration via environment variables
+      const apiEnv = this.getApiEnvironment();
+      if (Object.keys(apiEnv).length > 0) {
+        sdkOptions.env = { ...process.env, ...apiEnv };
+        logger.info('SDK', 'Using custom API endpoint', {
+          hasBaseUrl: !!apiEnv.ANTHROPIC_BASE_URL,
+          hasAuthToken: !!apiEnv.ANTHROPIC_API_KEY
+        });
+      }
+
       // Run Agent SDK query loop
       const queryResult = query({
         prompt: messageGenerator,
-        options: {
-          model: modelId,
-          disallowedTools,
-          abortController: session.abortController,
-          pathToClaudeCodeExecutable: claudePath
-        }
+        options: sdkOptions
       });
 
       // Process SDK messages
@@ -482,5 +495,25 @@ export class SDKAgent {
     const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
     return settings.CLAUDE_MEM_MODEL;
+  }
+
+  /**
+   * Get custom API environment variables from settings
+   * Maps MEM_ANTHROPIC_* settings to ANTHROPIC_* env vars for Claude Code subprocess
+   */
+  private getApiEnvironment(): Record<string, string> {
+    const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+    const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
+    const env: Record<string, string> = {};
+
+    // Map custom settings to standard Anthropic env vars
+    if (settings.MEM_ANTHROPIC_BASE_URL) {
+      env.ANTHROPIC_BASE_URL = settings.MEM_ANTHROPIC_BASE_URL;
+    }
+    if (settings.MEM_ANTHROPIC_AUTH_TOKEN) {
+      env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;
+    }
+
+    return env;
   }
 }
