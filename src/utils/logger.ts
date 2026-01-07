@@ -285,18 +285,22 @@ class Logger {
 
     const logLine = `[${timestamp}] [${levelStr}] [${componentStr}] ${correlationStr}${message}${contextStr}${dataStr}`;
 
-    // Output to log file ONLY (worker runs in background, console is useless)
+    // Output to stderr/stdout for immediate visibility (especially in TTY)
+    if (this.useColor || process.env.NODE_ENV === 'development') {
+      const output = level >= LogLevel.ERROR ? process.stderr : process.stdout;
+      output.write(logLine + '\n');
+    }
+
+    // Output to log file
     if (this.logFilePath) {
       try {
         appendFileSync(this.logFilePath, logLine + '\n', 'utf8');
       } catch (error) {
-        // Logger can't log its own failures - use stderr as last resort
-        // This is expected during disk full / permission errors
-        process.stderr.write(`[LOGGER] Failed to write to log file: ${error}\n`);
+        // Last resort: stderr if file write fails
+        if (!this.useColor) {
+          process.stderr.write(`[LOGGER] Failed to write to log file: ${error}\n`);
+        }
       }
-    } else {
-      // If no log file available, write to stderr as fallback
-      process.stderr.write(logLine + '\n');
     }
   }
 
