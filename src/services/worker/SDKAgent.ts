@@ -39,6 +39,10 @@ export class SDKAgent {
    * @param worker WorkerService reference for spinner control (optional)
    */
   async startSession(session: ActiveSession, worker?: WorkerRef): Promise<void> {
+    // Track cwd from messages for CLAUDE.md generation (worktree support)
+    // Uses mutable object so generator updates are visible in response processing
+    const cwdTracker = { lastCwd: undefined as string | undefined };
+
     // Find Claude executable
     const claudePath = this.findClaudeExecutable();
 
@@ -61,10 +65,13 @@ export class SDKAgent {
     ];
 
     // Create message generator (event-driven)
-    const messageGenerator = this.createMessageGenerator(session);
+    const messageGenerator = this.createMessageGenerator(session, cwdTracker);
 
-    // CRITICAL: Only resume if memorySessionId exists (was captured from a previous SDK response).
-    // memorySessionId starts as NULL and is captured on first SDK message.
+    // CRITICAL: Only resume if:
+    // 1. memorySessionId exists (was captured from a previous SDK response)
+    // 2. lastPromptNumber > 1 (this is a continuation within the same SDK session)
+    // On worker restart or crash recovery, memorySessionId may exist from a previous
+    // SDK session but we must NOT resume because the SDK context was lost.
     // NEVER use contentSessionId for resume - that would inject messages into the user's transcript!
     const hasRealMemorySessionId = !!session.memorySessionId;
 
@@ -77,188 +84,131 @@ export class SDKAgent {
       lastPromptNumber: session.lastPromptNumber
     });
 
-    // SESSION ALIGNMENT LOG: Resume decision proof - show if we're resuming with correct memorySessionId
+    // Debug-level alignment logs for detailed tracing
     if (session.lastPromptNumber > 1) {
-      logger.info('SDK', `[ALIGNMENT] Resume Decision | contentSessionId=${session.contentSessionId} | memorySessionId=${session.memorySessionId} | prompt#=${session.lastPromptNumber} | hasRealMemorySessionId=${hasRealMemorySessionId} | resumeWith=${hasRealMemorySessionId ? session.memorySessionId : 'NONE (fresh SDK session)'}`);
+      const willResume = hasRealMemorySessionId;
+      logger.debug('SDK', `[ALIGNMENT] Resume Decision | contentSessionId=${session.contentSessionId} | memorySessionId=${session.memorySessionId} | prompt#=${session.lastPromptNumber} | hasRealMemorySessionId=${hasRealMemorySessionId} | willResume=${willResume} | resumeWith=${willResume ? session.memorySessionId : 'NONE'}`);
     } else {
-      logger.info('SDK', `[ALIGNMENT] First Prompt | contentSessionId=${session.contentSessionId} | prompt#=${session.lastPromptNumber} | Will capture memorySessionId from first SDK response`);
+      // INIT prompt - never resume even if memorySessionId exists (stale from previous session)
+      const hasStaleMemoryId = hasRealMemorySessionId;
+      logger.debug('SDK', `[ALIGNMENT] First Prompt (INIT) | contentSessionId=${session.contentSessionId} | prompt#=${session.lastPromptNumber} | hasStaleMemoryId=${hasStaleMemoryId} | action=START_FRESH | Will capture new memorySessionId from SDK response`);
+      if (hasStaleMemoryId) {
+        logger.warn('SDK', `Skipping resume for INIT prompt despite existing memorySessionId=${session.memorySessionId} - SDK context was lost (worker restart or crash recovery)`);
+      }
     }
 
     // Run Agent SDK query loop
     // Only resume if we have a captured memory session ID
-    const apiEnv = this.getApiEnvironment();
-    const hasCustomApi = Object.keys(apiEnv).length > 0;
-
-    if (hasCustomApi) {
-      logger.info('SDK', 'Using custom API endpoint', {
-        hasBaseUrl: !!apiEnv.ANTHROPIC_BASE_URL,
-        hasAuthToken: !!apiEnv.ANTHROPIC_API_KEY
-      });
-    }
-
-    // CRITICAL: Disable resume when using custom API endpoints
-    // Third-party API proxies (like 智谱) don't store session state, so resume will fail
-    const shouldResume = hasRealMemorySessionId && !hasCustomApi;
-
-    if (hasCustomApi && hasRealMemorySessionId) {
-      logger.info('SDK', 'Resume disabled for custom API endpoint', {
-        sessionDbId: session.sessionDbId,
-        memorySessionId: session.memorySessionId
-      });
-    }
-
-    // Debug: Log the actual env being passed
-    if (hasCustomApi) {
-      logger.info('SDK', 'Custom API env being passed to SDK', {
-        sessionDbId: session.sessionDbId,
-        ANTHROPIC_BASE_URL: apiEnv.ANTHROPIC_BASE_URL,
-        hasApiKey: !!apiEnv.ANTHROPIC_API_KEY
-      });
-
-      // WORKAROUND: Set env vars directly on process.env
-      // The SDK's env parameter may not work correctly with custom API endpoints
-      process.env.ANTHROPIC_BASE_URL = apiEnv.ANTHROPIC_BASE_URL;
-      process.env.ANTHROPIC_API_KEY = apiEnv.ANTHROPIC_API_KEY;
-      logger.info('SDK', 'Set process.env directly for custom API', {
-        sessionDbId: session.sessionDbId
-      });
-    }
-
-    logger.info('SDK', 'Calling query() function', {
-      sessionDbId: session.sessionDbId,
-      model: modelId,
-      shouldResume,
-      hasCustomApi,
-      claudePath
-    });
-
     const queryResult = query({
       prompt: messageGenerator,
       options: {
         model: modelId,
-        // Only resume with official Anthropic API (custom proxies don't support session state)
-        ...(shouldResume && { resume: session.memorySessionId }),
-        ...(hasCustomApi && { env: { ...process.env, ...apiEnv } }),
+        // Only resume if BOTH: (1) we have a memorySessionId AND (2) this isn't the first prompt
+        // On worker restart, memorySessionId may exist from a previous SDK session but we
+        // need to start fresh since the SDK context was lost
+        ...(hasRealMemorySessionId && session.lastPromptNumber > 1 && { resume: session.memorySessionId }),
         disallowedTools,
         abortController: session.abortController,
         pathToClaudeCodeExecutable: claudePath
       }
     });
 
-    logger.info('SDK', 'query() returned, starting for-await loop', {
-      sessionDbId: session.sessionDbId
-    });
-
-    // Process SDK messages with error capture
-    try {
-      for await (const message of queryResult) {
-        // Log every message received from SDK
-        logger.info('SDK', 'Message received from API', {
-          sessionDbId: session.sessionDbId,
-          messageType: message.type,
-          hasSessionId: !!message.session_id
+    // Process SDK messages
+    for await (const message of queryResult) {
+      // Capture memory session ID from first SDK message (any type has session_id)
+      // This enables resume for subsequent generator starts within the same user session
+      if (!session.memorySessionId && message.session_id) {
+        session.memorySessionId = message.session_id;
+        // Persist to database for cross-restart recovery
+        this.dbManager.getSessionStore().updateMemorySessionId(
+          session.sessionDbId,
+          message.session_id
+        );
+        // Verify the update by reading back from DB
+        const verification = this.dbManager.getSessionStore().getSessionById(session.sessionDbId);
+        const dbVerified = verification?.memory_session_id === message.session_id;
+        logger.info('SESSION', `MEMORY_ID_CAPTURED | sessionDbId=${session.sessionDbId} | memorySessionId=${message.session_id} | dbVerified=${dbVerified}`, {
+          sessionId: session.sessionDbId,
+          memorySessionId: message.session_id
         });
-        // Capture memory session ID from first SDK message (any type has session_id)
-        // This enables resume for subsequent generator starts within the same user session
-        if (!session.memorySessionId && message.session_id) {
-          session.memorySessionId = message.session_id;
-          // Persist to database for cross-restart recovery
-          this.dbManager.getSessionStore().updateMemorySessionId(
-            session.sessionDbId,
-            message.session_id
-          );
-          logger.info('SDK', 'Captured memory session ID', {
-            sessionDbId: session.sessionDbId,
-            memorySessionId: message.session_id
+        if (!dbVerified) {
+          logger.error('SESSION', `MEMORY_ID_MISMATCH | sessionDbId=${session.sessionDbId} | expected=${message.session_id} | got=${verification?.memory_session_id}`, {
+            sessionId: session.sessionDbId
           });
-          // SESSION ALIGNMENT LOG: Memory session ID captured - now contentSessionId→memorySessionId mapping is complete
-          logger.info('SDK', `[ALIGNMENT] Captured | contentSessionId=${session.contentSessionId} → memorySessionId=${message.session_id} | Future prompts will resume with this ID`);
         }
+        // Debug-level alignment log for detailed tracing
+        logger.debug('SDK', `[ALIGNMENT] Captured | contentSessionId=${session.contentSessionId} → memorySessionId=${message.session_id} | Future prompts will resume with this ID`);
+      }
 
-        // Handle assistant messages
-        if (message.type === 'assistant') {
-          const content = message.message.content;
-          const textContent = Array.isArray(content)
-            ? content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
-            : typeof content === 'string' ? content : '';
+      // Handle assistant messages
+      if (message.type === 'assistant') {
+        const content = message.message.content;
+        const textContent = Array.isArray(content)
+          ? content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n')
+          : typeof content === 'string' ? content : '';
 
-          const responseSize = textContent.length;
+        const responseSize = textContent.length;
 
-          // Capture token state BEFORE updating (for delta calculation)
-          const tokensBeforeResponse = session.cumulativeInputTokens + session.cumulativeOutputTokens;
+        // Capture token state BEFORE updating (for delta calculation)
+        const tokensBeforeResponse = session.cumulativeInputTokens + session.cumulativeOutputTokens;
 
-          // Extract and track token usage
-          const usage = message.message.usage;
-          if (usage) {
-            session.cumulativeInputTokens += usage.input_tokens || 0;
-            session.cumulativeOutputTokens += usage.output_tokens || 0;
+        // Extract and track token usage
+        const usage = message.message.usage;
+        if (usage) {
+          session.cumulativeInputTokens += usage.input_tokens || 0;
+          session.cumulativeOutputTokens += usage.output_tokens || 0;
 
-            // Cache creation counts as discovery, cache read doesn't
-            if (usage.cache_creation_input_tokens) {
-              session.cumulativeInputTokens += usage.cache_creation_input_tokens;
-            }
-
-            logger.debug('SDK', 'Token usage captured', {
-              sessionId: session.sessionDbId,
-              inputTokens: usage.input_tokens,
-              outputTokens: usage.output_tokens,
-              cacheCreation: usage.cache_creation_input_tokens || 0,
-              cacheRead: usage.cache_read_input_tokens || 0,
-              cumulativeInput: session.cumulativeInputTokens,
-              cumulativeOutput: session.cumulativeOutputTokens
-            });
+          // Cache creation counts as discovery, cache read doesn't
+          if (usage.cache_creation_input_tokens) {
+            session.cumulativeInputTokens += usage.cache_creation_input_tokens;
           }
 
-          // Calculate discovery tokens (delta for this response only)
-          const discoveryTokens = (session.cumulativeInputTokens + session.cumulativeOutputTokens) - tokensBeforeResponse;
-
-          // Process response (empty or not) and mark messages as processed
-          // Capture earliest timestamp BEFORE processing (will be cleared after)
-          const originalTimestamp = session.earliestPendingTimestamp;
-
-          if (responseSize > 0) {
-            const truncatedResponse = responseSize > 100
-              ? textContent.substring(0, 100) + '...'
-              : textContent;
-            logger.dataOut('SDK', `Response received (${responseSize} chars)`, {
-              sessionId: session.sessionDbId,
-              promptNumber: session.lastPromptNumber
-            }, truncatedResponse);
-          }
-
-          // Parse and process response using shared ResponseProcessor
-          await processAgentResponse(
-            textContent,
-            session,
-            this.dbManager,
-            this.sessionManager,
-            worker,
-            discoveryTokens,
-            originalTimestamp,
-            'SDK'
-          );
+          logger.debug('SDK', 'Token usage captured', {
+            sessionId: session.sessionDbId,
+            inputTokens: usage.input_tokens,
+            outputTokens: usage.output_tokens,
+            cacheCreation: usage.cache_creation_input_tokens || 0,
+            cacheRead: usage.cache_read_input_tokens || 0,
+            cumulativeInput: session.cumulativeInputTokens,
+            cumulativeOutput: session.cumulativeOutputTokens
+          });
         }
 
-        // Log result messages
-        if (message.type === 'result' && message.subtype === 'success') {
-          // Usage telemetry is captured at SDK level
-        }
-      }
-    } catch (sdkError: any) {
-      // CRITICAL: Log any SDK/API errors
-      logger.failure('SDK', 'API call failed', {
-        sessionDbId: session.sessionDbId,
-        error: sdkError?.message || String(sdkError),
-        stack: sdkError?.stack?.substring(0, 500)
-      }, sdkError);
+        // Calculate discovery tokens (delta for this response only)
+        const discoveryTokens = (session.cumulativeInputTokens + session.cumulativeOutputTokens) - tokensBeforeResponse;
 
-      // Helpful hint for 401 errors
-      if (typeof sdkError?.message === 'string' && sdkError.message.includes('401')) {
-        logger.failure('SDK', 'Authentication failed (401). Please check your API key and Base URL settings.', {
-          hint: 'If using a custom provider, ensure MEM_ANTHROPIC_BASE_URL does not end with /messages'
-        });
+        // Process response (empty or not) and mark messages as processed
+        // Capture earliest timestamp BEFORE processing (will be cleared after)
+        const originalTimestamp = session.earliestPendingTimestamp;
+
+        if (responseSize > 0) {
+          const truncatedResponse = responseSize > 100
+            ? textContent.substring(0, 100) + '...'
+            : textContent;
+          logger.dataOut('SDK', `Response received (${responseSize} chars)`, {
+            sessionId: session.sessionDbId,
+            promptNumber: session.lastPromptNumber
+          }, truncatedResponse);
+        }
+
+        // Parse and process response using shared ResponseProcessor
+        await processAgentResponse(
+          textContent,
+          session,
+          this.dbManager,
+          this.sessionManager,
+          worker,
+          discoveryTokens,
+          originalTimestamp,
+          'SDK',
+          cwdTracker.lastCwd
+        );
       }
-      throw sdkError; // Re-throw to propagate
+
+      // Log result messages
+      if (message.type === 'result' && message.subtype === 'success') {
+        // Usage telemetry is captured at SDK level
+      }
     }
 
     // Mark session complete
@@ -298,8 +248,16 @@ export class SDKAgent {
    * - Each user message is added to session.conversationHistory
    * - This allows provider switching (Claude→Gemini) with full context
    * - SDK manages its own internal state, but we mirror it for interop
+   *
+   * CWD TRACKING:
+   * - cwdTracker is a mutable object shared with startSession
+   * - As messages with cwd are processed, cwdTracker.lastCwd is updated
+   * - This enables processAgentResponse to use the correct cwd for CLAUDE.md
    */
-  private async *createMessageGenerator(session: ActiveSession): AsyncIterableIterator<SDKUserMessage> {
+  private async *createMessageGenerator(
+    session: ActiveSession,
+    cwdTracker: { lastCwd: string | undefined }
+  ): AsyncIterableIterator<SDKUserMessage> {
     // Load active mode
     const mode = ModeManager.getInstance().getActiveMode();
 
@@ -335,6 +293,11 @@ export class SDKAgent {
 
     // Consume pending messages from SessionManager (event-driven, no polling)
     for await (const message of this.sessionManager.getMessageIterator(session.sessionDbId)) {
+      // Capture cwd from each message for worktree support
+      if (message.cwd) {
+        cwdTracker.lastCwd = message.cwd;
+      }
+
       if (message.type === 'observation') {
         // Update last prompt number
         if (message.prompt_number !== undefined) {
@@ -432,32 +395,5 @@ export class SDKAgent {
     const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
     const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
     return settings.CLAUDE_MEM_MODEL;
-  }
-
-  /**
-   * Get custom API environment variables from settings
-   * Maps MEM_ANTHROPIC_* settings to ANTHROPIC_* env vars for Claude Code subprocess
-   */
-  private getApiEnvironment(): Record<string, string> {
-    const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
-    const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
-    const env: Record<string, string> = {};
-
-    if (settings.MEM_ANTHROPIC_BASE_URL) {
-      let baseUrl = settings.MEM_ANTHROPIC_BASE_URL;
-      // Robustness: Strip trailing /messages if user pasted full endpoint
-      if (baseUrl.endsWith('/messages')) {
-        baseUrl = baseUrl.substring(0, baseUrl.length - '/messages'.length);
-      }
-      if (baseUrl.endsWith('/')) {
-        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
-      }
-      env.ANTHROPIC_BASE_URL = baseUrl;
-    }
-    if (settings.MEM_ANTHROPIC_AUTH_TOKEN) {
-      env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;
-    }
-
-    return env;
   }
 }
