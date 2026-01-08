@@ -1,99 +1,83 @@
 # Fork 核心定制记录
 
 本文档记录了 cfrs2005/claude-mem fork 相对于上游 thedotmack/claude-mem 的核心定制功能。
-用于在同步上游更新后重新应用这些改动。
+
+**最后同步**: v9.0.1 (2026-01-08)
 
 ---
 
-## 1. 自定义 API 端点配置
+## 特色功能状态
+
+### ✅ 1. 自定义 API 端点配置（已保留）
 
 **目的**: 让 claude-mem 使用独立的 API 密钥，避免消耗 Claude Code 订阅配额。
 
-### 1.1 配置项定义
+**当前实现**（v9.0.1 后）:
 
-**文件**: `src/shared/SettingsDefaultsManager.ts`
+#### 1.1 配置项定义
+
+**文件**: `src/shared/SettingsDefaultsManager.ts`（第 38-39, 85-86 行）
 
 ```typescript
-// 在 SettingsDefaults 接口中添加:
 export interface SettingsDefaults {
-  // ... 其他配置 ...
-
   // API Configuration (for independent API endpoint)
   MEM_ANTHROPIC_BASE_URL: string;
   MEM_ANTHROPIC_AUTH_TOKEN: string;
 }
 
-// 在 DEFAULTS 对象中添加默认值:
 private static readonly DEFAULTS: SettingsDefaults = {
-  // ... 其他默认值 ...
-
   // API Configuration (for independent API endpoint, empty = use Claude Code's default)
   MEM_ANTHROPIC_BASE_URL: '',
   MEM_ANTHROPIC_AUTH_TOKEN: '',
 };
 ```
 
-### 1.2 API 环境变量注入
+#### 1.2 环境变量注入
 
-**文件**: `src/services/worker/SDKAgent.ts`
+**文件**: `src/services/worker-service.ts`（第 742-769 行）
+
+在 worker 启动时（`--daemon` 模式）设置全局环境变量：
 
 ```typescript
-// 在 SDKAgent 类中添加方法:
+// Set custom API env vars at worker startup (before any SDK subprocess is spawned)
+const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
+try {
+  const settingsContent = readFileSync(settingsPath, 'utf-8');
+  const settings = JSON.parse(settingsContent);
 
-/**
- * Get custom API environment variables from settings
- * Maps MEM_ANTHROPIC_* settings to ANTHROPIC_* env vars for Claude Code subprocess
- */
-private getApiEnvironment(): Record<string, string> {
-  const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
-  const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
-  const env: Record<string, string> = {};
-
-  // Map custom settings to standard Anthropic env vars
   if (settings.MEM_ANTHROPIC_BASE_URL) {
-    env.ANTHROPIC_BASE_URL = settings.MEM_ANTHROPIC_BASE_URL;
+    let baseUrl = settings.MEM_ANTHROPIC_BASE_URL;
+    // Robustness: Strip trailing /messages if user pasted full endpoint
+    if (baseUrl.endsWith('/messages')) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - '/messages'.length);
+    }
+    // Robustness: Strip trailing slash
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+    }
+
+    process.env.ANTHROPIC_BASE_URL = baseUrl;
+    logger.info('SYSTEM', 'Set ANTHROPIC_BASE_URL from settings', {
+      original: settings.MEM_ANTHROPIC_BASE_URL,
+      final: baseUrl
+    });
   }
+
   if (settings.MEM_ANTHROPIC_AUTH_TOKEN) {
-    env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;
+    process.env.ANTHROPIC_API_KEY = settings.MEM_ANTHROPIC_AUTH_TOKEN;
+    logger.info('SYSTEM', 'Set ANTHROPIC_API_KEY from settings');
   }
-
-  return env;
+} catch (e) {
+  // Settings file may not exist, that's OK
 }
 ```
 
-### 1.3 SDK 调用时注入环境变量
+**改进点**：
+- ✅ 在 worker 启动时设置，所有子进程自动继承
+- ✅ 自动清理 URL 格式问题（/messages 后缀、尾部斜杠）
+- ✅ 详细日志记录便于调试
 
-**文件**: `src/services/worker/SDKAgent.ts` (startSession 方法)
-
-```typescript
-// 在 startSession 方法中，构建 SDK options 时:
-
-// Build SDK options with optional custom API endpoint
-const sdkOptions: any = {
-  model: modelId,
-  disallowedTools,
-  abortController: session.abortController,
-  pathToClaudeCodeExecutable: claudePath
-};
-
-// Inject custom API configuration via environment variables
-const apiEnv = this.getApiEnvironment();
-if (Object.keys(apiEnv).length > 0) {
-  sdkOptions.env = { ...process.env, ...apiEnv };
-  logger.info('SDK', 'Using custom API endpoint', {
-    hasBaseUrl: !!apiEnv.ANTHROPIC_BASE_URL,
-    hasAuthToken: !!apiEnv.ANTHROPIC_API_KEY
-  });
-}
-
-// Run Agent SDK query loop
-const queryResult = query({
-  prompt: messageGenerator,
-  options: sdkOptions
-});
-```
-
-### 1.4 用户配置示例
+#### 1.3 用户配置示例
 
 用户在 `~/.claude-mem/settings.json` 中配置:
 
@@ -106,122 +90,112 @@ const queryResult = query({
 
 ---
 
-## 2. 中文提示词支持
+### ✅ 2. 中文支持（上游已内置 Mode 系统）
 
 **目的**: 让 claude-mem 的观察和总结输出使用中文。
 
-### 2.1 语言配置项
+**当前实现**（v9.0.1 后）:
 
-**文件**: `src/shared/SettingsDefaultsManager.ts`
+上游在 PR #412 中引入了 **Mode 系统**（支持继承和多语言），我们之前的硬编码 `prompts-zh.ts` 方案已被更优雅的配置系统取代。
 
-```typescript
-// 已存在于上游，确保配置项存在:
-CLAUDE_MEM_CONTENT_LANGUAGE: 'en', // 'en' for English, 'zh' for Chinese
-```
+#### 2.1 中文 Mode 配置
 
-### 2.2 中文提示词文件
+**文件**: `plugin/modes/code--zh.json`
 
-**文件**: `src/sdk/prompts-zh.ts` (完整文件)
+完整的中文提示词配置，包含：
+- 系统身份定义
+- 观察者角色说明
+- 记录焦点指导
+- XML 输出格式
+- 进度总结提示词
 
-这是一个完整的中文提示词模块，包含以下函数:
+#### 2.2 Mode 选择配置
 
-- `buildInitPrompt()` - 初始化提示词
-- `buildObservationPrompt()` - 工具观察提示词
-- `buildSummaryPrompt()` - 进度总结提示词
-- `buildContinuationPrompt()` - 会话延续提示词
-
-### 2.3 语言切换逻辑
-
-**文件**: `src/sdk/prompts.ts`
+**文件**: `src/shared/SettingsDefaultsManager.ts`（第 40, 87 行）
 
 ```typescript
-import * as promptsZh from './prompts-zh.js';
-
-export type PromptLanguage = 'en' | 'zh';
-
-/**
- * Get prompt functions based on language preference
- */
-export function getPrompts(language: PromptLanguage) {
-  if (language === 'zh') {
-    return {
-      buildInitPrompt: promptsZh.buildInitPrompt,
-      buildObservationPrompt: promptsZh.buildObservationPrompt,
-      buildSummaryPrompt: promptsZh.buildSummaryPrompt,
-      buildContinuationPrompt: promptsZh.buildContinuationPrompt,
-    };
-  }
-
-  // Default to English
-  return {
-    buildInitPrompt,
-    buildObservationPrompt,
-    buildSummaryPrompt,
-    buildContinuationPrompt,
-  };
+export interface SettingsDefaults {
+  CLAUDE_MEM_MODE: string;
 }
+
+private static readonly DEFAULTS: SettingsDefaults = {
+  CLAUDE_MEM_MODE: 'code--zh', // 默认使用中文模式
+};
 ```
 
-### 2.4 SDKAgent 中的语言获取
+**注意**: 上游默认模式是 `code`（英文），我们 fork 的默认值改为 `code--zh`（中文）。
 
-**文件**: `src/services/worker/SDKAgent.ts`
+#### 2.3 可用语言模式
 
-```typescript
-/**
- * Get content language setting from user settings
- */
-private getContentLanguage(): PromptLanguage {
-  try {
-    const settingsContent = readFileSync(USER_SETTINGS_PATH, 'utf-8');
-    const settings = JSON.parse(settingsContent);
-    const language = settings.CLAUDE_MEM_CONTENT_LANGUAGE ||
-      SettingsDefaultsManager.get('CLAUDE_MEM_CONTENT_LANGUAGE');
-    return (language === 'zh' ? 'zh' : 'en') as PromptLanguage;
-  } catch {
-    return 'en';
-  }
-}
+```bash
+plugin/modes/
+├── code.json             # 英文（上游默认）
+├── code--zh.json         # 简体中文（我们的默认）
+├── code--ja.json         # 日语
+├── code--ko.json         # 韩语
+├── code--fr.json         # 法语
+├── code--de.json         # 德语
+└── ... (30+ 语言)
 ```
 
-### 2.5 用户配置示例
+#### 2.4 用户配置示例
 
 用户在 `~/.claude-mem/settings.json` 中配置:
 
 ```json
 {
-  "CLAUDE_MEM_CONTENT_LANGUAGE": "zh"
+  "CLAUDE_MEM_MODE": "code--zh"
 }
 ```
 
 ---
 
-## 重新应用步骤
+## 未来同步策略
 
-同步上游后，按以下顺序重新应用改动:
+### 合并冲突处理
 
-1. **SettingsDefaultsManager.ts**
-   - 添加 `MEM_ANTHROPIC_BASE_URL` 和 `MEM_ANTHROPIC_AUTH_TOKEN` 到接口和默认值
+1. **配置项冲突** (`SettingsDefaultsManager.ts`):
+   - 保留 `MEM_ANTHROPIC_BASE_URL` 和 `MEM_ANTHROPIC_AUTH_TOKEN`
+   - 确保 `CLAUDE_MEM_MODE` 默认值为 `code--zh`
 
-2. **SDKAgent.ts**
-   - 添加 `getApiEnvironment()` 方法
-   - 修改 `startSession()` 方法注入环境变量
+2. **Worker 服务冲突** (`worker-service.ts`):
+   - 保留 API 环境变量注入逻辑（`--daemon` 分支）
+   - 确保在 worker 启动时设置 `process.env.ANTHROPIC_*`
 
-3. **prompts-zh.ts**
-   - 创建完整的中文提示词文件
+3. **构建产物冲突** (`plugin/scripts/*.js`):
+   - 始终接受上游版本
+   - 重新构建以应用源码改动：`npm run build-and-sync`
 
-4. **prompts.ts**
-   - 添加 `import * as promptsZh`
-   - 添加 `getPrompts()` 函数的中文分支
+### 定期检查
 
-5. **构建和测试**
-   ```bash
-   npm run build-and-sync
-   ```
+- 上游是否改动了 Mode 系统架构
+- 上游是否改动了 worker 启动流程
+- 上游 `code--zh.json` 是否有翻译更新（我们可以跟进）
 
 ---
 
-## 注意事项
+## 废弃的实现（v9.0.0 前）
 
-- 上游可能已经有类似功能，合并前先检查
-- 中文提示词需要与上游英文版本保持结构同步
-- API 配置功能是独立的，不影响其他功能
+以下文件/方法在 Mode 系统引入后已不再需要：
+
+- ❌ `src/sdk/prompts-zh.ts` - 被 `plugin/modes/code--zh.json` 取代
+- ❌ `src/sdk/prompts.ts` 中的 `getPrompts()` 函数 - Mode 系统直接读取配置
+- ❌ `SDKAgent.getContentLanguage()` - 改用 `CLAUDE_MEM_MODE` 配置
+
+---
+
+## 构建和测试
+
+```bash
+# 完整构建和同步
+npm run build-and-sync
+
+# 验证 API 配置
+cat ~/.claude-mem/settings.json | grep MEM_ANTHROPIC
+
+# 验证中文模式
+cat ~/.claude-mem/settings.json | grep CLAUDE_MEM_MODE
+
+# 检查 worker 日志
+tail -f ~/.claude-mem/logs/worker-*.log | grep ANTHROPIC
+```
