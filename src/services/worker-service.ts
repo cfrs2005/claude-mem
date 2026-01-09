@@ -78,6 +78,17 @@ import { LogsRoutes } from './worker/http/routes/LogsRoutes.js';
 // Re-export updateCursorContextForProject for SDK agents
 export { updateCursorContextForProject };
 
+/**
+ * Generate SDK environment variables based on provider settings
+ * Reserved for future providers that need SDK env var injection.
+ * Note: Zhipu, Gemini, and OpenRouter call their APIs directly (no SDK).
+ */
+function getSDKEnvironmentVariables(): Record<string, string> {
+  // All current providers (zhipu, gemini, openrouter) call APIs directly.
+  // Only Claude SDK provider would need env vars, but it uses default config.
+  return {};
+}
+
 export class WorkerService {
   private server: Server;
   private startTime: number = Date.now();
@@ -204,6 +215,10 @@ export class WorkerService {
    * Start the worker service
    */
   async start(): Promise<void> {
+    // Set SDK environment variables for provider compatibility
+    const sdkEnv = getSDKEnvironmentVariables();
+    Object.assign(process.env, sdkEnv);
+
     const port = getWorkerPort();
     const host = getWorkerHost();
 
@@ -562,7 +577,8 @@ async function runInteractiveSetup(): Promise<number> {
     } else {
       console.log('   Starting worker in background...');
 
-      const pid = spawnDaemon(__filename, port);
+      const sdkEnv = getSDKEnvironmentVariables();
+      const pid = spawnDaemon(__filename, port, sdkEnv);
       if (pid === undefined) {
         console.error('Failed to start worker');
         rl.close();
@@ -662,7 +678,8 @@ async function main() {
       }
 
       logger.info('SYSTEM', 'Starting worker daemon');
-      const pid = spawnDaemon(__filename, port);
+      const sdkEnv = getSDKEnvironmentVariables();
+      const pid = spawnDaemon(__filename, port, sdkEnv);
       if (pid === undefined) {
         logger.error('SYSTEM', 'Failed to spawn worker daemon');
         process.exit(1);
@@ -702,7 +719,8 @@ async function main() {
       }
       removePidFile();
 
-      const pid = spawnDaemon(__filename, port);
+      const sdkEnv = getSDKEnvironmentVariables();
+      const pid = spawnDaemon(__filename, port, sdkEnv);
       if (pid === undefined) {
         logger.error('SYSTEM', 'Failed to spawn worker daemon during restart');
         process.exit(1);
