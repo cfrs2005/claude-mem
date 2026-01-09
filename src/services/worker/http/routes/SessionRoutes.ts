@@ -14,6 +14,7 @@ import { DatabaseManager } from '../../DatabaseManager.js';
 import { SDKAgent } from '../../SDKAgent.js';
 import { GeminiAgent, isGeminiSelected, isGeminiAvailable } from '../../GeminiAgent.js';
 import { OpenRouterAgent, isOpenRouterSelected, isOpenRouterAvailable } from '../../OpenRouterAgent.js';
+import { ZhipuAgent, isZhipuSelected, isZhipuAvailable } from '../../ZhipuAgent.js';
 import type { WorkerService } from '../../../worker-service.js';
 import { BaseRouteHandler } from '../BaseRouteHandler.js';
 import { SessionEventBroadcaster } from '../../events/SessionEventBroadcaster.js';
@@ -31,6 +32,7 @@ export class SessionRoutes extends BaseRouteHandler {
     private sdkAgent: SDKAgent,
     private geminiAgent: GeminiAgent,
     private openRouterAgent: OpenRouterAgent,
+    private zhipuAgent: ZhipuAgent,
     private eventBroadcaster: SessionEventBroadcaster,
     private workerService: WorkerService
   ) {
@@ -48,7 +50,15 @@ export class SessionRoutes extends BaseRouteHandler {
    * Note: Session linking via contentSessionId allows provider switching mid-session.
    * The conversationHistory on ActiveSession maintains context across providers.
    */
-  private getActiveAgent(): SDKAgent | GeminiAgent | OpenRouterAgent {
+  private getActiveAgent(): SDKAgent | GeminiAgent | OpenRouterAgent | ZhipuAgent {
+    if (isZhipuSelected()) {
+      if (isZhipuAvailable()) {
+        logger.debug('SESSION', 'Using Zhipu agent');
+        return this.zhipuAgent;
+      } else {
+        throw new Error('Zhipu provider selected but no API key configured. Set CLAUDE_MEM_ZHIPU_API_KEY in settings.');
+      }
+    }
     if (isOpenRouterSelected()) {
       if (isOpenRouterAvailable()) {
         logger.debug('SESSION', 'Using OpenRouter agent');
@@ -71,11 +81,22 @@ export class SessionRoutes extends BaseRouteHandler {
   /**
    * Get the currently selected provider name
    */
-  private getSelectedProvider(): 'claude' | 'gemini' | 'openrouter' {
+  private getSelectedProvider(): 'claude' | 'gemini' | 'openrouter' | 'zhipu' {
+    const zhipuSelected = isZhipuSelected();
+    const zhipuAvailable = isZhipuAvailable();
+    logger.debug('SESSION', `Provider check: zhipuSelected=${zhipuSelected}, zhipuAvailable=${zhipuAvailable}`);
+
+    if (zhipuSelected && zhipuAvailable) {
+      logger.info('SESSION', 'Selected provider: zhipu');
+      return 'zhipu';
+    }
     if (isOpenRouterSelected() && isOpenRouterAvailable()) {
+      logger.info('SESSION', 'Selected provider: openrouter');
       return 'openrouter';
     }
-    return (isGeminiSelected() && isGeminiAvailable()) ? 'gemini' : 'claude';
+    const result = (isGeminiSelected() && isGeminiAvailable()) ? 'gemini' : 'claude';
+    logger.info('SESSION', `Selected provider: ${result}`);
+    return result;
   }
 
   /**
@@ -122,8 +143,8 @@ export class SessionRoutes extends BaseRouteHandler {
   ): void {
     if (!session) return;
 
-    const agent = provider === 'openrouter' ? this.openRouterAgent : (provider === 'gemini' ? this.geminiAgent : this.sdkAgent);
-    const agentName = provider === 'openrouter' ? 'OpenRouter' : (provider === 'gemini' ? 'Gemini' : 'Claude SDK');
+    const agent = provider === 'zhipu' ? this.zhipuAgent : (provider === 'openrouter' ? this.openRouterAgent : (provider === 'gemini' ? this.geminiAgent : this.sdkAgent));
+    const agentName = provider === 'zhipu' ? 'Zhipu' : (provider === 'openrouter' ? 'OpenRouter' : (provider === 'gemini' ? 'Gemini' : 'Claude SDK'));
 
     logger.info('SESSION', `Generator auto-starting (${source}) using ${agentName}`, {
       sessionId: session.sessionDbId,

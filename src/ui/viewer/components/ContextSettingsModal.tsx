@@ -424,6 +424,7 @@ export function ContextSettingsModal({
                   <option value="claude">Claude (uses your Claude account)</option>
                   <option value="gemini">Gemini (uses API key)</option>
                   <option value="openrouter">OpenRouter (multi-model)</option>
+                  <option value="zhipu">Zhipu AI (uses API key)</option>
                 </select>
               </FormField>
 
@@ -526,6 +527,36 @@ export function ContextSettingsModal({
                       onChange={(e) => updateSetting('CLAUDE_MEM_OPENROUTER_APP_NAME', e.target.value)}
                       placeholder="claude-mem"
                     />
+                  </FormField>
+                </>
+              )}
+
+              {formState.CLAUDE_MEM_PROVIDER === 'zhipu' && (
+                <>
+                  <FormField
+                    label="Zhipu API Key"
+                    tooltip="Your Zhipu AI API key from open.bigmodel.cn (or set ZHIPU_API_KEY env var)"
+                  >
+                    <input
+                      type="password"
+                      value={formState.CLAUDE_MEM_ZHIPU_API_KEY || ''}
+                      onChange={(e) => updateSetting('CLAUDE_MEM_ZHIPU_API_KEY', e.target.value)}
+                      placeholder="Enter Zhipu API key..."
+                    />
+                  </FormField>
+                  <FormField
+                    label="Zhipu Model"
+                    tooltip="Zhipu GLM model used for generating observations"
+                  >
+                    <select
+                      value={formState.CLAUDE_MEM_ZHIPU_MODEL || 'glm-4.7'}
+                      onChange={(e) => updateSetting('CLAUDE_MEM_ZHIPU_MODEL', e.target.value)}
+                    >
+                      <option value="glm-4.7">glm-4.7</option>
+                      <option value="glm-4-flash">glm-4-flash</option>
+                      <option value="glm-4-plus">glm-4-plus</option>
+                      <option value="glm-4-air">glm-4-air</option>
+                    </select>
                   </FormField>
                 </>
               )}

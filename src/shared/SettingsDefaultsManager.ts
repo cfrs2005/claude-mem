@@ -19,7 +19,7 @@ export interface SettingsDefaults {
   CLAUDE_MEM_WORKER_HOST: string;
   CLAUDE_MEM_SKIP_TOOLS: string;
   // AI Provider Configuration
-  CLAUDE_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter'
+  CLAUDE_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter' | 'zhipu'
   CLAUDE_MEM_GEMINI_API_KEY: string;
   CLAUDE_MEM_GEMINI_MODEL: string;  // 'gemini-2.5-flash-lite' | 'gemini-2.5-flash' | 'gemini-3-flash'
   CLAUDE_MEM_GEMINI_RATE_LIMITING_ENABLED: string;  // 'true' | 'false' - enable rate limiting for free tier
@@ -29,14 +29,13 @@ export interface SettingsDefaults {
   CLAUDE_MEM_OPENROUTER_APP_NAME: string;
   CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES: string;
   CLAUDE_MEM_OPENROUTER_MAX_TOKENS: string;
+  CLAUDE_MEM_ZHIPU_API_KEY: string;
+  CLAUDE_MEM_ZHIPU_MODEL: string;  // 'glm-4-flash' | 'glm-4-plus' | 'glm-4-air'
   // System Configuration
   CLAUDE_MEM_DATA_DIR: string;
   CLAUDE_MEM_LOG_LEVEL: string;
   CLAUDE_MEM_PYTHON_VERSION: string;
   CLAUDE_CODE_PATH: string;
-  // API Configuration (for independent API endpoint)
-  MEM_ANTHROPIC_BASE_URL: string;
-  MEM_ANTHROPIC_AUTH_TOKEN: string;
   CLAUDE_MEM_MODE: string;
   // Token Economics
   CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS: string;
@@ -76,14 +75,13 @@ export class SettingsDefaultsManager {
     CLAUDE_MEM_OPENROUTER_APP_NAME: 'claude-mem',  // App name for OpenRouter analytics
     CLAUDE_MEM_OPENROUTER_MAX_CONTEXT_MESSAGES: '20',  // Max messages in context window
     CLAUDE_MEM_OPENROUTER_MAX_TOKENS: '100000',  // Max estimated tokens (~100k safety limit)
+    CLAUDE_MEM_ZHIPU_API_KEY: '',  // Empty by default, can be set via UI or env
+    CLAUDE_MEM_ZHIPU_MODEL: 'glm-4.7',  // Default Zhipu model
     // System Configuration
     CLAUDE_MEM_DATA_DIR: join(homedir(), '.claude-mem'),
     CLAUDE_MEM_LOG_LEVEL: 'INFO',
     CLAUDE_MEM_PYTHON_VERSION: '3.13',
     CLAUDE_CODE_PATH: '', // Empty means auto-detect via 'which claude'
-    // API Configuration (for independent API endpoint, empty = use Claude Code's default)
-    MEM_ANTHROPIC_BASE_URL: '',
-    MEM_ANTHROPIC_AUTH_TOKEN: '',
     CLAUDE_MEM_MODE: 'code--zh', // Default mode profile
     // Token Economics
     CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS: 'true',
