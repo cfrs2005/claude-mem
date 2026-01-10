@@ -18,6 +18,9 @@ export interface SettingsDefaults {
   CLAUDE_MEM_WORKER_PORT: string;
   CLAUDE_MEM_WORKER_HOST: string;
   CLAUDE_MEM_SKIP_TOOLS: string;
+  // API Configuration (for independent API endpoint)
+  MEM_ANTHROPIC_BASE_URL: string;
+  MEM_ANTHROPIC_AUTH_TOKEN: string;
   // AI Provider Configuration
   CLAUDE_MEM_PROVIDER: string;  // 'claude' | 'gemini' | 'openrouter' | 'zhipu'
   CLAUDE_MEM_GEMINI_API_KEY: string;
@@ -64,6 +67,9 @@ export class SettingsDefaultsManager {
     CLAUDE_MEM_WORKER_PORT: '37777',
     CLAUDE_MEM_WORKER_HOST: '127.0.0.1',
     CLAUDE_MEM_SKIP_TOOLS: 'ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion',
+    // API Configuration (for independent API endpoint, empty = use Claude Code's default)
+    MEM_ANTHROPIC_BASE_URL: '',
+    MEM_ANTHROPIC_AUTH_TOKEN: '',
     // AI Provider Configuration
     CLAUDE_MEM_PROVIDER: 'claude',  // Default to Claude
     CLAUDE_MEM_GEMINI_API_KEY: '',  // Empty by default, can be set via UI or env
