@@ -88,7 +88,7 @@ ${mode.prompts.header_memory_start}`;
 /**
  * Build prompt to send tool observation to SDK agent
  */
-export function buildObservationPrompt(obs: Observation): string {
+export function buildObservationPrompt(obs: Observation, mode: ModeConfig): string {
   // Safely parse tool_input and tool_output - they're already JSON strings
   let toolInput: any;
   let toolOutput: any;
@@ -116,7 +116,18 @@ export function buildObservationPrompt(obs: Observation): string {
   <occurred_at>${new Date(obs.created_at_epoch).toISOString()}</occurred_at>${obs.cwd ? `\n  <working_directory>${obs.cwd}</working_directory>` : ''}
   <parameters>${JSON.stringify(toolInput, null, 2)}</parameters>
   <outcome>${JSON.stringify(toolOutput, null, 2)}</outcome>
-</observed_from_primary_session>`;
+</observed_from_primary_session>
+
+${mode.prompts.recording_focus}
+
+${mode.prompts.output_format_header}
+
+\`\`\`xml
+<observation>
+  <type>[ ${mode.observation_types.map(t => t.id).join(' | ')} ]</type>
+  <!-- Continue recording this activity. Output in the same XML format as before. -->
+</observation>
+\`\`\``;
 }
 
 /**

@@ -79,6 +79,11 @@ export class ZhipuAgent {
    * Start Zhipu agent for a session
    */
   async startSession(session: ActiveSession, worker?: WorkerRef): Promise<void> {
+    const startTime = Date.now();
+    logger.info('SESSION', `[Zhipu] Generator STARTING | sessionDbId=${session.sessionDbId} | contentSessionId=${session.contentSessionId} | prompt#=${session.lastPromptNumber}`, {
+      sessionId: session.sessionDbId
+    });
+
     try {
       const { apiKey, model } = this.getZhipuConfig();
 
@@ -94,8 +99,37 @@ export class ZhipuAgent {
         : buildContinuationPrompt(session.userPrompt, session.lastPromptNumber, session.contentSessionId, mode);
 
       // Add to conversation history and query Zhipu
+      logger.info('SESSION', `[Zhipu] Sending INIT request | sessionDbId=${session.sessionDbId} | model=${model} | historyLength=${session.conversationHistory.length + 1}`, {
+        sessionId: session.sessionDbId
+      });
+      const apiStartTime = Date.now();
       session.conversationHistory.push({ role: 'user', content: initPrompt });
       const initResponse = await this.queryZhipuMultiTurn(session.conversationHistory, apiKey, model);
+      const apiDuration = Date.now() - apiStartTime;
+      logger.info('SESSION', `[Zhipu] INIT response received | sessionDbId=${session.sessionDbId} | duration=${apiDuration}ms | tokensUsed=${initResponse.tokensUsed || 0}`, {
+        sessionId: session.sessionDbId
+      });
+
+      // Capture memorySessionId from Zhipu's first response (for FK constraint and resume support)
+      // This must happen BEFORE processAgentResponse to satisfy memorySessionId requirement
+      if (!session.memorySessionId && initResponse.responseId) {
+        session.memorySessionId = initResponse.responseId;
+
+        // Persist to database for cross-restart recovery
+        this.dbManager.getSessionStore().updateMemorySessionId(
+          session.sessionDbId,
+          initResponse.responseId
+        );
+
+        // Verify database persistence
+        const verification = this.dbManager.getSessionStore().getSessionById(session.sessionDbId);
+        const dbVerified = verification?.memory_session_id === initResponse.responseId;
+
+        logger.info('SESSION', `MEMORY_ID_CAPTURED | sessionDbId=${session.sessionDbId} | memorySessionId=${initResponse.responseId} | dbVerified=${dbVerified}`, {
+          sessionId: session.sessionDbId,
+          memorySessionId: initResponse.responseId
+        });
+      }
 
       if (initResponse.content) {
         session.conversationHistory.push({ role: 'assistant', content: initResponse.content });
@@ -123,8 +157,14 @@ export class ZhipuAgent {
 
       // Process pending messages
       let lastCwd: string | undefined;
+      let processedCount = 0;
 
       for await (const message of this.sessionManager.getMessageIterator(session.sessionDbId)) {
+        processedCount++;
+        logger.info('SESSION', `[Zhipu] Processing pending message #${processedCount} | sessionDbId=${session.sessionDbId} | messageId=${message.id} | type=${message.type} | tool=${message.tool_name || 'N/A'}`, {
+          sessionId: session.sessionDbId
+        });
+
         if (message.cwd) {
           lastCwd = message.cwd;
         }
@@ -142,10 +182,18 @@ export class ZhipuAgent {
             tool_output: JSON.stringify(message.tool_response),
             created_at_epoch: originalTimestamp ?? Date.now(),
             cwd: message.cwd
-          });
+          }, mode);
 
+          logger.info('SESSION', `[Zhipu] Sending OBSERVATION request | sessionDbId=${session.sessionDbId} | tool=${message.tool_name} | historyLength=${session.conversationHistory.length + 1}`, {
+            sessionId: session.sessionDbId
+          });
+          const obsApiStartTime = Date.now();
           session.conversationHistory.push({ role: 'user', content: obsPrompt });
           const obsResponse = await this.queryZhipuMultiTurn(session.conversationHistory, apiKey, model);
+          const obsApiDuration = Date.now() - obsApiStartTime;
+          logger.info('SESSION', `[Zhipu] OBSERVATION response received | sessionDbId=${session.sessionDbId} | duration=${obsApiDuration}ms | tokensUsed=${obsResponse.tokensUsed || 0}`, {
+            sessionId: session.sessionDbId
+          });
 
           let tokensUsed = 0;
           if (obsResponse.content) {
@@ -202,22 +250,26 @@ export class ZhipuAgent {
       }
 
       // Mark session complete
-      const sessionDuration = Date.now() - session.startTime;
-      logger.success('SESSION', 'Zhipu agent completed', {
+      const sessionDuration = Date.now() - startTime;
+      logger.success('SESSION', `[Zhipu] Generator COMPLETED | sessionDbId=${session.sessionDbId} | duration=${(sessionDuration / 1000).toFixed(1)}s | processedMessages=${processedCount} | historyLength=${session.conversationHistory.length}`, {
         sessionId: session.sessionDbId,
         duration: `${(sessionDuration / 1000).toFixed(1)}s`,
         historyLength: session.conversationHistory.length
       });
 
     } catch (error: unknown) {
+      const failureDuration = Date.now() - startTime;
+
       if (isAbortError(error)) {
-        logger.warn('SESSION', 'Zhipu agent aborted', { sessionId: session.sessionDbId });
+        logger.warn('SESSION', `[Zhipu] Generator ABORTED | sessionDbId=${session.sessionDbId} | duration=${(failureDuration / 1000).toFixed(1)}s`, {
+          sessionId: session.sessionDbId
+        });
         throw error;
       }
 
       // Check if we should fall back to Claude
       if (shouldFallbackToClaude(error) && this.fallbackAgent) {
-        logger.warn('SESSION', 'Zhipu API failed, falling back to Claude SDK', {
+        logger.warn('SESSION', `[Zhipu] API FAILED, falling back to Claude SDK | sessionDbId=${session.sessionDbId} | error=${error instanceof Error ? error.message : String(error)} | duration=${(failureDuration / 1000).toFixed(1)}s`, {
           sessionDbId: session.sessionDbId,
           error: error instanceof Error ? error.message : String(error),
           historyLength: session.conversationHistory.length
@@ -226,7 +278,9 @@ export class ZhipuAgent {
         return this.fallbackAgent.startSession(session, worker);
       }
 
-      logger.failure('SESSION', 'Zhipu agent error', { sessionDbId: session.sessionDbId }, error as Error);
+      logger.failure('SESSION', `[Zhipu] Generator FAILED | sessionDbId=${session.sessionDbId} | error=${error instanceof Error ? error.message : String(error)} | duration=${(failureDuration / 1000).toFixed(1)}s`, {
+        sessionDbId: session.sessionDbId
+      }, error as Error);
       throw error;
     }
   }
@@ -238,46 +292,80 @@ export class ZhipuAgent {
     history: ConversationMessage[],
     apiKey: string,
     model: ZhipuModel
-  ): Promise<{ content: string; tokensUsed?: number }> {
+  ): Promise<{ content: string; tokensUsed?: number; responseId?: string }> {
     const messages: AnthropicMessage[] = history.map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content
     }));
 
-    logger.info('SESSION', `[Zhipu] Calling API with model=${model}`);
+    logger.info('SESSION', `[Zhipu] API call START | model=${model} | messages=${messages.length}`);
+    const apiCallStart = Date.now();
 
-    const response = await fetch(ZHIPU_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
+    try {
+      const response = await fetch(ZHIPU_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          messages
+        })
+      });
+
+      const fetchDuration = Date.now() - apiCallStart;
+
+      // Warn if API call is slow
+      if (fetchDuration > 10000) {
+        logger.warn('SESSION', `[Zhipu] SLOW API call | duration=${fetchDuration}ms | threshold=10s`, {
+          duration: `${fetchDuration}ms`,
+          model
+        });
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error('SESSION', `[Zhipu] API HTTP error | status=${response.status} | duration=${fetchDuration}ms`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText.substring(0, 500)
+        });
+        throw new Error(`Zhipu API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json() as AnthropicResponse;
+
+      if (!data.content?.[0]?.text) {
+        logger.error('SESSION', `[Zhipu] Empty response | duration=${fetchDuration}ms`, {
+          responseId: data.id,
+          hasContent: !!data.content,
+          contentLength: data.content?.length
+        });
+        return { content: '' };
+      }
+
+      const content = data.content[0].text;
+      const tokensUsed = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+
+      logger.info('SESSION', `[Zhipu] API call SUCCESS | duration=${fetchDuration}ms | tokens=${tokensUsed} | responseId=${data.id}`, {
+        duration: `${fetchDuration}ms`,
+        tokensUsed,
+        responseId: data.id
+      });
+
+      return { content, tokensUsed, responseId: data.id };
+    } catch (error: unknown) {
+      const errorDuration = Date.now() - apiCallStart;
+      logger.error('SESSION', `[Zhipu] API call FAILED | duration=${errorDuration}ms | error=${error instanceof Error ? error.message : String(error)}`, {
+        duration: `${errorDuration}ms`,
         model,
-        max_tokens: 4096,
-        messages
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Zhipu API error: ${response.status} ${errorText}`);
+        messagesCount: messages.length
+      }, error as Error);
+      throw error;
     }
-
-    const data = await response.json() as AnthropicResponse;
-
-    if (!data.content?.[0]?.text) {
-      logger.error('SESSION', 'Empty response from Zhipu API');
-      return { content: '' };
-    }
-
-    const content = data.content[0].text;
-    const tokensUsed = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-
-    logger.info('SESSION', `[Zhipu] API response received, tokens=${tokensUsed}`);
-
-    return { content, tokensUsed };
   }
 
   /**

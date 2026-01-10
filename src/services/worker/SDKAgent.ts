@@ -311,7 +311,7 @@ export class SDKAgent {
           tool_output: JSON.stringify(message.tool_response),
           created_at_epoch: Date.now(),
           cwd: message.cwd
-        });
+        }, mode);
 
         // Add to shared conversation history for provider interop
         session.conversationHistory.push({ role: 'user', content: obsPrompt });
