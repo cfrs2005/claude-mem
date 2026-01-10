@@ -79,6 +79,30 @@ import { LogsRoutes } from './worker/http/routes/LogsRoutes.js';
 export { updateCursorContextForProject };
 
 /**
+ * Build JSON status output for hook framework communication.
+ * This is a pure function extracted for testability.
+ *
+ * @param status - 'ready' for successful startup, 'error' for failures
+ * @param message - Optional error message (only included when provided)
+ * @returns JSON object with continue, suppressOutput, status, and optionally message
+ */
+export interface StatusOutput {
+  continue: true;
+  suppressOutput: true;
+  status: 'ready' | 'error';
+  message?: string;
+}
+
+export function buildStatusOutput(status: 'ready' | 'error', message?: string): StatusOutput {
+  return {
+    continue: true,
+    suppressOutput: true,
+    status,
+    ...(message && { message })
+  };
+}
+
+/**
  * Generate SDK environment variables based on provider settings
  * Reserved for future providers that need SDK env var injection.
  * Note: Zhipu, Gemini, and OpenRouter call their APIs directly (no SDK).
@@ -642,6 +666,14 @@ async function main() {
   const command = process.argv[2];
   const port = getWorkerPort();
 
+  // Helper for JSON status output in 'start' command
+  // Exit code 0 ensures Windows Terminal doesn't keep tabs open
+  function exitWithStatus(status: 'ready' | 'error', message?: string): never {
+    const output = buildStatusOutput(status, message);
+    console.log(JSON.stringify(output));
+    process.exit(0);
+  }
+
   switch (command) {
     case 'start': {
       if (await waitForHealth(port, 1000)) {
@@ -656,12 +688,12 @@ async function main() {
           const freed = await waitForPortFree(port, getPlatformTimeout(15000));
           if (!freed) {
             logger.error('SYSTEM', 'Port did not free up after shutdown for version mismatch restart', { port });
-            process.exit(1);
+            exitWithStatus('error', 'Port did not free after version mismatch restart');
           }
           removePidFile();
         } else {
           logger.info('SYSTEM', 'Worker already running and healthy');
-          process.exit(0);
+          exitWithStatus('ready');
         }
       }
 
@@ -671,10 +703,10 @@ async function main() {
         const healthy = await waitForHealth(port, getPlatformTimeout(15000));
         if (healthy) {
           logger.info('SYSTEM', 'Worker is now healthy');
-          process.exit(0);
+          exitWithStatus('ready');
         }
         logger.error('SYSTEM', 'Port in use but worker not responding to health checks');
-        process.exit(1);
+        exitWithStatus('error', 'Port in use but worker not responding');
       }
 
       logger.info('SYSTEM', 'Starting worker daemon');
@@ -682,7 +714,7 @@ async function main() {
       const pid = spawnDaemon(__filename, port, sdkEnv);
       if (pid === undefined) {
         logger.error('SYSTEM', 'Failed to spawn worker daemon');
-        process.exit(1);
+        exitWithStatus('error', 'Failed to spawn worker daemon');
       }
 
       writePidFile({ pid, port, startedAt: new Date().toISOString() });
@@ -691,11 +723,11 @@ async function main() {
       if (!healthy) {
         removePidFile();
         logger.error('SYSTEM', 'Worker failed to start (health check timeout)');
-        process.exit(1);
+        exitWithStatus('error', 'Worker failed to start (health check timeout)');
       }
 
       logger.info('SYSTEM', 'Worker started successfully');
-      process.exit(0);
+      exitWithStatus('ready');
     }
 
     case 'stop': {
@@ -715,7 +747,9 @@ async function main() {
       const freed = await waitForPortFree(port, getPlatformTimeout(15000));
       if (!freed) {
         logger.error('SYSTEM', 'Port did not free up after shutdown, aborting restart', { port });
-        process.exit(1);
+        // Exit gracefully: Windows Terminal won't keep tab open on exit 0
+        // The wrapper/plugin will handle restart logic if needed
+        process.exit(0);
       }
       removePidFile();
 
@@ -723,7 +757,9 @@ async function main() {
       const pid = spawnDaemon(__filename, port, sdkEnv);
       if (pid === undefined) {
         logger.error('SYSTEM', 'Failed to spawn worker daemon during restart');
-        process.exit(1);
+        // Exit gracefully: Windows Terminal won't keep tab open on exit 0
+        // The wrapper/plugin will handle restart logic if needed
+        process.exit(0);
       }
 
       writePidFile({ pid, port, startedAt: new Date().toISOString() });
@@ -732,7 +768,9 @@ async function main() {
       if (!healthy) {
         removePidFile();
         logger.error('SYSTEM', 'Worker failed to restart');
-        process.exit(1);
+        // Exit gracefully: Windows Terminal won't keep tab open on exit 0
+        // The wrapper/plugin will handle restart logic if needed
+        process.exit(0);
       }
 
       logger.info('SYSTEM', 'Worker restarted successfully');
@@ -759,13 +797,29 @@ async function main() {
       process.exit(cursorResult);
     }
 
+    case 'hook': {
+      const platform = process.argv[3];
+      const event = process.argv[4];
+      if (!platform || !event) {
+        console.error('Usage: claude-mem hook <platform> <event>');
+        console.error('Platforms: claude-code, cursor, raw');
+        console.error('Events: context, session-init, observation, summarize, user-message');
+        process.exit(1);
+      }
+      const { hookCommand } = await import('../cli/hook-command.js');
+      await hookCommand(platform, event);
+      break;
+    }
+
     case '--daemon':
     default: {
       const worker = new WorkerService();
       worker.start().catch((error) => {
         logger.failure('SYSTEM', 'Worker failed to start', {}, error as Error);
         removePidFile();
-        process.exit(1);
+        // Exit gracefully: Windows Terminal won't keep tab open on exit 0
+        // The wrapper/plugin will handle restart logic if needed
+        process.exit(0);
       });
     }
   }
