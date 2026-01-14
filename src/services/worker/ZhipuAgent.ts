@@ -63,6 +63,10 @@ export class ZhipuAgent {
   private sessionManager: SessionManager;
   private fallbackAgent: FallbackAgent | null = null;
 
+  // 全局串行执行锁：所有实例共享的Promise链
+  // 确保同一时间只有一个Zhipu API调用在执行
+  private static globalLock: Promise<void> = Promise.resolve();
+
   constructor(dbManager: DatabaseManager, sessionManager: SessionManager) {
     this.dbManager = dbManager;
     this.sessionManager = sessionManager;
@@ -77,8 +81,19 @@ export class ZhipuAgent {
 
   /**
    * Start Zhipu agent for a session
+   * 全局串行执行：同一时间只有一个Zhipu调用在运行
    */
   async startSession(session: ActiveSession, worker?: WorkerRef): Promise<void> {
+    // 获取全局锁：等待前一个调用完成
+    const myTurn = ZhipuAgent.globalLock;
+    let resolveMyLock!: () => void;
+    ZhipuAgent.globalLock = new Promise(resolve => { resolveMyLock = resolve; });
+
+    logger.debug('SESSION', `[Zhipu] Generator WAITING for global lock | sessionDbId=${session.sessionDbId}`, {
+      sessionId: session.sessionDbId
+    });
+    await myTurn;
+
     const startTime = Date.now();
     logger.info('SESSION', `[Zhipu] Generator STARTING | sessionDbId=${session.sessionDbId} | contentSessionId=${session.contentSessionId} | prompt#=${session.lastPromptNumber}`, {
       sessionId: session.sessionDbId
@@ -282,6 +297,12 @@ export class ZhipuAgent {
         sessionDbId: session.sessionDbId
       }, error as Error);
       throw error;
+    } finally {
+      // 释放全局锁，允许下一个Zhipu调用执行
+      resolveMyLock();
+      logger.debug('SESSION', `[Zhipu] Generator released global lock | sessionDbId=${session.sessionDbId}`, {
+        sessionId: session.sessionDbId
+      });
     }
   }
 

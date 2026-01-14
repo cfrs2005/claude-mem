@@ -54,7 +54,9 @@ import { SSEBroadcaster } from './worker/SSEBroadcaster.js';
 import { SDKAgent } from './worker/SDKAgent.js';
 import { GeminiAgent } from './worker/GeminiAgent.js';
 import { OpenRouterAgent } from './worker/OpenRouterAgent.js';
-import { ZhipuAgent } from './worker/ZhipuAgent.js';
+import { ZhipuAgent, isZhipuSelected, isZhipuAvailable } from './worker/ZhipuAgent.js';
+import { isGeminiSelected, isGeminiAvailable } from './worker/GeminiAgent.js';
+import { isOpenRouterSelected, isOpenRouterAvailable } from './worker/OpenRouterAgent.js';
 import { PaginationHelper } from './worker/PaginationHelper.js';
 import { SettingsManager } from './worker/SettingsManager.js';
 import { SearchManager } from './worker/SearchManager.js';
@@ -329,6 +331,28 @@ export class WorkerService {
   }
 
   /**
+   * Get the currently selected provider
+   */
+  private getSelectedProvider(): 'claude' | 'gemini' | 'openrouter' | 'zhipu' {
+    if (isZhipuSelected() && isZhipuAvailable()) return 'zhipu';
+    if (isOpenRouterSelected() && isOpenRouterAvailable()) return 'openrouter';
+    if (isGeminiSelected() && isGeminiAvailable()) return 'gemini';
+    return 'claude';
+  }
+
+  /**
+   * Get the agent for the selected provider
+   */
+  private getAgentForProvider(provider: 'claude' | 'gemini' | 'openrouter' | 'zhipu') {
+    switch (provider) {
+      case 'zhipu': return this.zhipuAgent;
+      case 'openrouter': return this.openRouterAgent;
+      case 'gemini': return this.geminiAgent;
+      default: return this.sdkAgent;
+    }
+  }
+
+  /**
    * Start a session processor
    */
   private startSessionProcessor(
@@ -338,13 +362,17 @@ export class WorkerService {
     if (!session) return;
 
     const sid = session.sessionDbId;
-    logger.info('SYSTEM', `Starting generator (${source})`, { sessionId: sid });
+    const provider = this.getSelectedProvider();
+    const agent = this.getAgentForProvider(provider);
 
-    session.generatorPromise = this.sdkAgent.startSession(session, this)
+    logger.info('SYSTEM', `Starting generator (${source}) using ${provider}`, { sessionId: sid });
+
+    session.generatorPromise = agent.startSession(session, this)
       .catch(error => {
-        logger.error('SDK', 'Session generator failed', {
+        logger.error('SESSION', `Generator failed (${provider})`, {
           sessionId: session.sessionDbId,
-          project: session.project
+          project: session.project,
+          provider
         }, error as Error);
       })
       .finally(() => {
