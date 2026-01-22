@@ -552,6 +552,7 @@ export function ContextSettingsModal({
                       value={formState.CLAUDE_MEM_ZHIPU_MODEL || 'glm-4.7'}
                       onChange={(e) => updateSetting('CLAUDE_MEM_ZHIPU_MODEL', e.target.value)}
                     >
+                      <option value="glm-4.5-flash">glm-4.5-flash (免费)</option>
                       <option value="glm-4.7">glm-4.7</option>
                       <option value="glm-4-flash">glm-4-flash</option>
                       <option value="glm-4-plus">glm-4-plus</option>
