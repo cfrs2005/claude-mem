@@ -28,7 +28,7 @@ import {
 const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/anthropic/v1/messages';
 
 // Zhipu model types
-export type ZhipuModel = 'glm-4.7' | 'glm-4-plus' | 'glm-4-flash';
+export type ZhipuModel = 'glm-4.5-flash' | 'glm-4.7' | 'glm-4-plus' | 'glm-4-flash' | 'glm-4-air';
 
 // ============================================================================
 // Anthropic-compatible message types
@@ -399,7 +399,7 @@ export class ZhipuAgent {
     const apiKey = settings.CLAUDE_MEM_ZHIPU_API_KEY || '';
     const configuredModel = settings.CLAUDE_MEM_ZHIPU_MODEL || 'glm-4.7';
 
-    const validModels: ZhipuModel[] = ['glm-4.7', 'glm-4-plus', 'glm-4-flash'];
+    const validModels: ZhipuModel[] = ['glm-4.5-flash', 'glm-4.7', 'glm-4-plus', 'glm-4-flash', 'glm-4-air'];
     const model: ZhipuModel = validModels.includes(configuredModel as ZhipuModel)
       ? (configuredModel as ZhipuModel)
       : 'glm-4.7';

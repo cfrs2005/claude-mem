@@ -13,4 +13,12 @@
 | #11919 | " | ✅ | 已修复plugin/package.json格式问题：为version字段添加正确的缩进 | ~73 |
 | #11917 | " | 🔴 | 已解决plugin/package.json版本冲突：保留fork版本9.1.0 | ~75 |
 | #11914 | " | 🔵 | plugin/package.json版本冲突：9.1.0 vs 9.0.5 | ~92 |
+
+### Jan 22, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #12166 | 6:42 PM | ✅ | Git版本发布v9.1.2 | ~66 |
+| #12165 | " | ✅ | claude-mem插件重新构建并部署 | ~74 |
+| #12164 | " | ✅ | 插件版本号更新 | ~63 |
 </claude-mem-context>

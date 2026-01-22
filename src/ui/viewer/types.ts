@@ -70,7 +70,7 @@ export interface Settings {
   CLAUDE_MEM_OPENROUTER_SITE_URL?: string;
   CLAUDE_MEM_OPENROUTER_APP_NAME?: string;
   CLAUDE_MEM_ZHIPU_API_KEY?: string;
-  CLAUDE_MEM_ZHIPU_MODEL?: string;  // 'glm-4.7' | 'glm-4-flash' | 'glm-4-plus' | 'glm-4-air'
+  CLAUDE_MEM_ZHIPU_MODEL?: string;  // 'glm-4.5-flash' | 'glm-4.7' | 'glm-4-flash' | 'glm-4-plus' | 'glm-4-air'
 
   // Token Economics Display
   CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS?: string;
